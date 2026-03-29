@@ -44,7 +44,7 @@ DEBUG_INTERVAL = 1.0
 
 while True:
     fc22_raw, fc22_2_raw, fish_raw, fc22_alert, fc22_2_alert, fish_alert = any_sensor_triggered()
-    triggered = fc22_alert or fc22_2_alert or fish_alert
+    triggered = fc22_2_alert or fish_alert
 
     now = time.monotonic()
     if now - _last_print >= DEBUG_INTERVAL:
