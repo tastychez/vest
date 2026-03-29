@@ -1,7 +1,7 @@
 import time
 
 import led_matrix
-from dht11 import is_alert as dht11_alert
+from dht11 import read as dht11_read
 from fc22sbx import fc22
 from flyingfish import flyingfish
 
@@ -10,18 +10,20 @@ from flyingfish import flyingfish
 
 def any_sensor_triggered():
     """
-    Return True if at least one sensor reports a detection event.
+    Return True if at least one *gas/air* sensor reports a detection event.
+
+    Only the two gas sensors drive the LED matrix.  The DHT11 is read
+    separately for informational purposes (temperature / humidity logging)
+    but does NOT trigger the alert state.
 
     Sensor polarity
     ---------------
     FC-22 (smoke / gas)    – active LOW: DO pulls LOW when gas detected
     Flying Fish (moisture) – active LOW: DO pulls LOW when water detected
-    DHT11 (temp/humidity)  – alert when readings exceed configured thresholds
     """
     fc22_alert = not fc22.value  # LOW → smoke / gas present
     fish_alert = not flyingfish.value  # LOW → moisture present
-    heat_or_humid = dht11_alert()  # True → temp or humidity too high
-    return fc22_alert or fish_alert or heat_or_humid
+    return fc22_alert or fish_alert
 
 
 # ── Output helpers ─────────────────────────────────────────────────────────────
