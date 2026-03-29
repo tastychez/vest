@@ -1,0 +1,9 @@
+{
+  "fc22_pin": "D4",
+  "flying_fish_pin": "D17",
+  "cnt5_pin": "D6",
+  "matrix_clk_pin": "SCK",
+  "matrix_mosi_pin": "MOSI",
+  "matrix_cs_pin": "D5",
+  "matrix_brightness": 5
+}
