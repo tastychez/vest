@@ -199,6 +199,32 @@ class TestDisplayPixel:
         ]
 
 
+# ── fill_all() ────────────────────────────────────────────────────────────────
+
+
+class TestFillAll:
+    def test_fills_with_one(self):
+        led_matrix.fill_all()
+        _MATRIX.fill.assert_called_once_with(1)
+
+    def test_calls_show(self):
+        led_matrix.fill_all()
+        _MATRIX.show.assert_called_once()
+
+    def test_call_order_fill_then_show(self):
+        led_matrix.fill_all()
+        assert _MATRIX.mock_calls == [call.fill(1), call.show()]
+
+    def test_fill_all_is_opposite_of_clear(self):
+        """fill_all() must pass 1, clear() must pass 0 — never the same value."""
+        led_matrix.fill_all()
+        fill_all_arg = _MATRIX.fill.call_args[0][0]
+        _MATRIX.reset_mock()
+        led_matrix.clear()
+        clear_arg = _MATRIX.fill.call_args[0][0]
+        assert fill_all_arg != clear_arg
+
+
 # ── clear() ───────────────────────────────────────────────────────────────────
 
 

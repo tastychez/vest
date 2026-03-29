@@ -163,40 +163,10 @@ class TestConfigEdgeCases:
 
     # ── Missing required key ────────────────────────────────────────────────
 
-    def test_missing_fc22_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "fc22_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_flying_fish_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "flying_fish_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_cnt5_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "cnt5_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_matrix_clk_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "matrix_clk_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_matrix_brightness_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "matrix_brightness"}
+    @pytest.mark.parametrize("missing_key", REQUIRED_KEYS)
+    def test_missing_key_raises_key_error(self, missing_key, tmp_path, monkeypatch):
+        """Removing any single required key must cause a KeyError on import."""
+        cfg = {k: v for k, v in RAW_CONFIG.items() if k != missing_key}
         self._write_cfg(tmp_path, cfg)
         monkeypatch.chdir(tmp_path)
         sys.modules.pop("config", None)
