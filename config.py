@@ -20,3 +20,6 @@ matrix_cs_pin = _config["matrix_cs_pin"]
 
 # MAX7219 brightness (0 = dimmest, 15 = brightest)
 matrix_brightness = _config["matrix_brightness"]
+
+# Flash interval in seconds (time between on/off toggles during alert)
+flash_interval = _config["flash_interval"]

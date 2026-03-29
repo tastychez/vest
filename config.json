@@ -7,5 +7,6 @@
   "matrix_clk_pin": "D11",
   "matrix_mosi_pin": "D10",
   "matrix_cs_pin": "D16",
-  "matrix_brightness": 5
+  "matrix_brightness": 5,
+  "flash_interval": 0.25
 }

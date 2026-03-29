@@ -1,6 +1,7 @@
 import time
 
 import led_matrix
+from config import flash_interval
 from dht11 import read as dht11_read
 from fc22sbx import fc22
 from flyingfish import flyingfish
@@ -26,42 +27,29 @@ def any_sensor_triggered():
     return fc22_alert or fish_alert
 
 
-# ── Output helpers ─────────────────────────────────────────────────────────────
-
-
-def show_alert():
-    """
-    All LEDs ON = danger  (red equivalent on the monochrome matrix).
-    A fully-lit 8×8 matrix is the brightest, most eye-catching state.
-    """
-    led_matrix.fill_all()
-
-
-def show_safe():
-    """
-    All LEDs OFF = all clear  (green equivalent on the monochrome matrix).
-    A blank display means no sensor has fired.
-    """
-    led_matrix.clear()
-
-
 # ── Startup ────────────────────────────────────────────────────────────────────
-show_safe()
+led_matrix.clear()
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
-# _last_triggered tracks the previous sensor state so we only push a new frame
-# to the matrix when the state actually changes, avoiding unnecessary SPI writes
-# and visible flicker.
-_last_triggered = None
+_flash_on = False
+_last_toggle = time.monotonic()
+_last_triggered = False
 
 while True:
     triggered = any_sensor_triggered()
 
-    if triggered != _last_triggered:
-        if triggered:
-            show_alert()
-        else:
-            show_safe()
-        _last_triggered = triggered
+    if triggered:
+        now = time.monotonic()
+        if now - _last_toggle >= flash_interval:
+            _flash_on = not _flash_on
+            if _flash_on:
+                led_matrix.fill_all()
+            else:
+                led_matrix.clear()
+            _last_toggle = now
+    elif _last_triggered:
+        led_matrix.clear()
+        _flash_on = False
 
-    time.sleep(0.1)  # poll every 100 ms
+    _last_triggered = triggered
+    time.sleep(0.05)
