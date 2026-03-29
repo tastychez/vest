@@ -1,0 +1,2325 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Canary Command Center</title>
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg-base: #080b0e;
+                --bg-panel: #0d1117;
+                --bg-card: #131820;
+                --bg-card-hover: #18202c;
+                --border: #1c2433;
+                --border-bright: #253040;
+                --cyan: #00d4ff;
+                --green: #00e676;
+                --yellow: #ffd600;
+                --red: #ff1744;
+                --text-primary: #d8e8f5;
+                --text-secondary: #607080;
+                --text-muted: #384858;
+                --font-ui: "Segoe UI", system-ui, sans-serif;
+                --font-mono: "Courier New", "Lucida Console", monospace;
+                --header-h: 58px;
+            }
+
+            html,
+            body {
+                height: 100%;
+                background: var(--bg-base);
+                color: var(--text-primary);
+                font-family: var(--font-ui);
+                font-size: 13px;
+                overflow: hidden;
+            }
+
+            /* ── Layout ── */
+            #app {
+                display: grid;
+                grid-template-rows: var(--header-h) 1fr;
+                height: 100vh;
+            }
+            #body-row {
+                display: grid;
+                grid-template-columns: 300px 1fr 280px;
+                overflow: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 24px;
+                background: var(--bg-panel);
+                border-bottom: 1px solid var(--border-bright);
+                position: relative;
+                z-index: 10;
+                box-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+            }
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+            .canary-icon {
+                width: 32px;
+                height: 32px;
+                flex-shrink: 0;
+            }
+            .canary-icon svg {
+                width: 100%;
+                height: 100%;
+            }
+            .header-title {
+                display: flex;
+                flex-direction: column;
+            }
+            .header-title h1 {
+                font-size: 16px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            .header-title span {
+                font-size: 10px;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--text-secondary);
+                margin-top: 1px;
+            }
+
+            .header-center {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 28px;
+            }
+            .header-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+            }
+            .header-stat-label {
+                font-size: 9px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+            }
+            .header-stat-value {
+                font-family: var(--font-mono);
+                font-size: 14px;
+                color: var(--cyan);
+            }
+
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+            }
+
+            .status-pill {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(0, 230, 118, 0.07);
+                border: 1px solid rgba(0, 230, 118, 0.22);
+                border-radius: 20px;
+                padding: 5px 14px 5px 10px;
+                transition:
+                    background 0.4s,
+                    border-color 0.4s;
+            }
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--green);
+                box-shadow: 0 0 6px var(--green);
+                animation: pulse-green 2s ease-in-out infinite;
+                flex-shrink: 0;
+            }
+            .status-dot.emergency {
+                background: var(--red);
+                box-shadow: 0 0 10px var(--red);
+                animation: pulse-red 0.55s ease-in-out infinite;
+            }
+            .status-text {
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.06em;
+                color: var(--green);
+                white-space: nowrap;
+            }
+            .status-text.emergency {
+                color: var(--red);
+            }
+            .utc-clock {
+                font-family: var(--font-mono);
+                font-size: 12px;
+                color: var(--text-secondary);
+            }
+
+            /* ── Panels ── */
+            .panel {
+                background: var(--bg-panel);
+                border-right: 1px solid var(--border);
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+            .panel:last-child {
+                border-right: none;
+                border-left: 1px solid var(--border);
+            }
+            .panel::-webkit-scrollbar {
+                width: 3px;
+            }
+            .panel::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .panel::-webkit-scrollbar-thumb {
+                background: var(--border-bright);
+                border-radius: 2px;
+            }
+
+            .panel-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 13px 16px 10px;
+                border-bottom: 1px solid var(--border);
+                position: sticky;
+                top: 0;
+                background: var(--bg-panel);
+                z-index: 5;
+            }
+            .panel-header-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--cyan);
+                box-shadow: 0 0 5px var(--cyan);
+                flex-shrink: 0;
+            }
+            .panel-title {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+                color: var(--text-secondary);
+            }
+
+            /* ── Left panel ── */
+            #left-panel {
+                padding-bottom: 16px;
+            }
+            .section-label {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                padding: 13px 16px 5px;
+            }
+
+            .miner-card {
+                margin: 0 12px 4px;
+                background: var(--bg-card);
+                border: 1px solid var(--border-bright);
+                border-radius: 8px;
+                padding: 11px 13px;
+                display: flex;
+                align-items: center;
+                gap: 11px;
+            }
+            .miner-avatar {
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #004d60, #002a38);
+                border: 2px solid var(--cyan);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                flex-shrink: 0;
+            }
+            .miner-info {
+                flex: 1;
+            }
+            .miner-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            .miner-sub {
+                font-size: 10px;
+                color: var(--text-secondary);
+                margin-top: 2px;
+            }
+            .miner-status-badge {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--green);
+                background: rgba(0, 230, 118, 0.09);
+                border: 1px solid rgba(0, 230, 118, 0.28);
+                border-radius: 10px;
+                padding: 2px 8px;
+            }
+
+            .vitals-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin: 0 12px 4px;
+            }
+            .vital-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border-bright);
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            .vital-label {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                margin-bottom: 5px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .vital-value {
+                font-family: var(--font-mono);
+                font-size: 22px;
+                font-weight: 700;
+                color: var(--cyan);
+                line-height: 1;
+            }
+            .vital-unit {
+                font-size: 10px;
+                color: var(--text-secondary);
+                margin-top: 3px;
+            }
+
+            /* ── Gas cards ── */
+            .gas-card {
+                margin: 0 12px 8px;
+                background: var(--bg-card);
+                border: 1px solid var(--border-bright);
+                border-radius: 8px;
+                padding: 11px 13px;
+                transition:
+                    border-color 0.3s,
+                    background 0.3s,
+                    box-shadow 0.3s;
+                position: relative;
+                overflow: hidden;
+            }
+            .gas-card::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: var(--cyan);
+                transition: background 0.3s;
+            }
+
+            .gas-card.critical {
+                border-color: var(--red);
+                background: rgba(255, 23, 68, 0.07);
+                animation: card-flash 0.55s ease-in-out infinite;
+            }
+            .gas-card.deficient {
+                border-color: var(--yellow);
+                background: rgba(255, 214, 0, 0.06);
+                animation: card-flash-yellow 0.8s ease-in-out infinite;
+            }
+            .gas-card.critical::before {
+                background: var(--red);
+            }
+            .gas-card.deficient::before {
+                background: var(--yellow);
+            }
+
+            .gas-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 9px;
+            }
+            .gas-name {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.13em;
+                text-transform: uppercase;
+                color: var(--text-secondary);
+            }
+
+            .gas-badge {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                border-radius: 8px;
+                padding: 2px 8px;
+                background: rgba(0, 230, 118, 0.1);
+                border: 1px solid rgba(0, 230, 118, 0.32);
+                color: var(--green);
+                transition: all 0.3s;
+            }
+            .gas-badge.critical {
+                background: rgba(255, 23, 68, 0.13);
+                border-color: var(--red);
+                color: var(--red);
+            }
+            .gas-badge.deficient {
+                background: rgba(255, 214, 0, 0.12);
+                border-color: rgba(255, 214, 0, 0.5);
+                color: var(--yellow);
+            }
+
+            .gas-value-row {
+                display: flex;
+                align-items: baseline;
+                gap: 5px;
+                margin-bottom: 7px;
+            }
+            .gas-value {
+                font-family: var(--font-mono);
+                font-size: 28px;
+                font-weight: 700;
+                color: var(--cyan);
+                line-height: 1;
+                transition: color 0.3s;
+            }
+            .gas-value.critical {
+                color: var(--red);
+            }
+            .gas-value.deficient {
+                color: var(--yellow);
+            }
+            .gas-unit {
+                font-family: var(--font-mono);
+                font-size: 11px;
+                color: var(--text-muted);
+            }
+
+            .bar-track {
+                height: 5px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 3px;
+                overflow: hidden;
+            }
+            .bar-fill {
+                height: 100%;
+                border-radius: 3px;
+                background: var(--cyan);
+                transition:
+                    width 0.6s ease,
+                    background 0.3s;
+            }
+            .bar-fill.critical {
+                background: var(--red);
+            }
+            .bar-fill.deficient {
+                background: var(--yellow);
+            }
+            .bar-labels {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 4px;
+            }
+            .bar-label {
+                font-family: var(--font-mono);
+                font-size: 9px;
+                color: var(--text-muted);
+            }
+
+            /* ── Center panel ── */
+            #center-panel {
+                background: var(--bg-base);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                border: none;
+            }
+            #center-panel .panel-header {
+                background: var(--bg-base);
+                border-bottom: 1px solid var(--border);
+            }
+            .tunnel-container {
+                flex: 1;
+                position: relative;
+                overflow: hidden;
+            }
+            #tunnel-canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            .tunnel-overlay-label {
+                position: absolute;
+                top: 14px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 9px;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                pointer-events: none;
+                white-space: nowrap;
+            }
+            .tunnel-coords {
+                position: absolute;
+                bottom: 12px;
+                left: 14px;
+                font-family: var(--font-mono);
+                font-size: 9px;
+                color: var(--text-muted);
+                line-height: 1.7;
+                pointer-events: none;
+            }
+            .tunnel-legend {
+                position: absolute;
+                bottom: 12px;
+                right: 14px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                pointer-events: none;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 9px;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+            }
+            .legend-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+
+            /* Depth colour bar */
+            .depth-colorbar {
+                position: absolute;
+                top: 14px;
+                right: 14px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                pointer-events: none;
+            }
+            .depth-colorbar-label {
+                font-size: 8px;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+            }
+            .depth-colorbar-bar {
+                width: 10px;
+                height: 72px;
+                border-radius: 3px;
+                background: linear-gradient(
+                    to bottom,
+                    rgba(255, 55, 0, 0.85),
+                    rgba(255, 200, 0, 0.85),
+                    rgba(0, 210, 90, 0.85),
+                    rgba(0, 195, 255, 0.85),
+                    rgba(0, 55, 220, 0.85)
+                );
+            }
+            .depth-tick-wrap {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 72px;
+            }
+            .depth-tick {
+                font-family: var(--font-mono);
+                font-size: 8px;
+                color: var(--text-muted);
+            }
+
+            .alert-banner {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: linear-gradient(
+                    90deg,
+                    rgba(255, 23, 68, 0.9),
+                    rgba(175, 0, 28, 0.9)
+                );
+                color: #fff;
+                text-align: center;
+                padding: 9px;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                display: none;
+                z-index: 20;
+                animation: banner-flash 0.75s ease-in-out infinite;
+            }
+
+            /* ── Right panel / Event log ── */
+            #right-panel {
+                display: flex;
+                flex-direction: column;
+            }
+            #event-log {
+                flex: 1;
+                overflow-y: auto;
+                padding: 6px 0;
+            }
+            #event-log::-webkit-scrollbar {
+                width: 3px;
+            }
+            #event-log::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            #event-log::-webkit-scrollbar-thumb {
+                background: var(--border-bright);
+                border-radius: 2px;
+            }
+
+            .log-entry {
+                padding: 7px 13px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+                animation: log-in 0.3s ease;
+            }
+            .log-entry:hover {
+                background: var(--bg-card-hover);
+            }
+            .log-time {
+                font-family: var(--font-mono);
+                font-size: 9px;
+                color: var(--text-muted);
+                letter-spacing: 0.04em;
+                margin-bottom: 2px;
+            }
+            .log-message {
+                font-size: 11px;
+                color: var(--text-secondary);
+                line-height: 1.4;
+            }
+            .log-entry.critical .log-message {
+                color: var(--red);
+                font-weight: 600;
+            }
+            .log-entry.warning .log-message {
+                color: var(--yellow);
+            }
+            .log-entry.success .log-message {
+                color: var(--green);
+            }
+            .log-entry.info .log-message {
+                color: var(--cyan);
+            }
+
+            .log-footer {
+                padding: 9px 13px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .log-count {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                color: var(--text-muted);
+            }
+            .log-indicator {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 9px;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--text-muted);
+            }
+            .log-blink {
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: var(--cyan);
+                animation: blink 1.2s step-end infinite;
+            }
+
+            .key-hint {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            .kbd {
+                display: inline-flex;
+                align-items: center;
+                background: var(--bg-card);
+                border: 1px solid var(--border-bright);
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-family: var(--font-mono);
+                font-size: 10px;
+                color: var(--text-secondary);
+                gap: 4px;
+            }
+            .kbd-label {
+                font-size: 9px;
+                color: var(--text-muted);
+            }
+
+            /* ── Keyframes ── */
+            @keyframes pulse-green {
+                0%,
+                100% {
+                    opacity: 1;
+                    box-shadow: 0 0 6px var(--green);
+                }
+                50% {
+                    opacity: 0.5;
+                    box-shadow: 0 0 14px var(--green);
+                }
+            }
+            @keyframes pulse-red {
+                0%,
+                100% {
+                    opacity: 1;
+                    box-shadow: 0 0 10px var(--red);
+                }
+                50% {
+                    opacity: 0.4;
+                    box-shadow: 0 0 22px var(--red);
+                }
+            }
+            @keyframes card-flash {
+                0%,
+                100% {
+                    box-shadow: 0 0 14px rgba(255, 23, 68, 0.16);
+                }
+                50% {
+                    box-shadow: 0 0 30px rgba(255, 23, 68, 0.44);
+                }
+            }
+            @keyframes card-flash-yellow {
+                0%,
+                100% {
+                    box-shadow: 0 0 12px rgba(255, 214, 0, 0.12);
+                }
+                50% {
+                    box-shadow: 0 0 26px rgba(255, 214, 0, 0.38);
+                }
+            }
+            @keyframes banner-flash {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.78;
+                }
+            }
+            @keyframes blink {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0;
+                }
+            }
+            @keyframes log-in {
+                from {
+                    opacity: 0;
+                    transform: translateX(-6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <!-- ══════════════════════════ HEADER ══════════════════════════════ -->
+            <header>
+                <div class="header-left">
+                    <div class="canary-icon">
+                        <svg
+                            viewBox="0 0 32 32"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <circle
+                                cx="16"
+                                cy="16"
+                                r="15"
+                                fill="#0d1117"
+                                stroke="#00d4ff"
+                                stroke-width="1"
+                            />
+                            <ellipse
+                                cx="15"
+                                cy="19"
+                                rx="7"
+                                ry="5.5"
+                                fill="#ffd600"
+                            />
+                            <circle cx="21" cy="13" r="4" fill="#ffd600" />
+                            <circle cx="22.5" cy="12" r="0.9" fill="#080b0e" />
+                            <path d="M25 13.5L28.5 12L25 15Z" fill="#ff8f00" />
+                            <path
+                                d="M10 17 Q13 13 15 17"
+                                stroke="#e6a800"
+                                stroke-width="1.2"
+                                fill="none"
+                                stroke-linecap="round"
+                            />
+                            <path
+                                d="M8 21L5 24M9 22L5 26"
+                                stroke="#e6a800"
+                                stroke-width="1.4"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </div>
+                    <div class="header-title">
+                        <h1>Canary Command Center</h1>
+                        <span
+                            >Subsurface Monitoring · RealSense D457 Point Cloud
+                            · Node Network</span
+                        >
+                    </div>
+                </div>
+
+                <div class="header-center">
+                    <div class="header-stat">
+                        <span class="header-stat-label">Active Nodes</span>
+                        <span class="header-stat-value">01 / 04</span>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Uptime</span>
+                        <span class="header-stat-value" id="stat-uptime"
+                            >00:00:00</span
+                        >
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Packets / s</span>
+                        <span class="header-stat-value" id="stat-packets"
+                            >--</span
+                        >
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">RSSI</span>
+                        <span class="header-stat-value" id="stat-signal"
+                            >--</span
+                        >
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="status-pill" id="status-pill">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span class="status-text" id="status-text"
+                            >System Online — Telemetry Active</span
+                        >
+                    </div>
+                    <div class="utc-clock" id="utc-clock">UTC 00:00:00</div>
+                </div>
+            </header>
+
+            <!-- ══════════════════════════ BODY ════════════════════════════════ -->
+            <div id="body-row">
+                <!-- ════════════ LEFT: TELEMETRY ════════════ -->
+                <div class="panel" id="left-panel">
+                    <div class="panel-header">
+                        <div class="panel-header-dot"></div>
+                        <span class="panel-title"
+                            >Live Telemetry — Node 01</span
+                        >
+                    </div>
+
+                    <div class="section-label">Miner Profile</div>
+                    <div class="miner-card">
+                        <div class="miner-avatar">👷</div>
+                        <div class="miner-info">
+                            <div class="miner-name">Node 01 · Miner Alpha</div>
+                            <div class="miner-sub">
+                                Sector 7 · Drift B · Depth 142 m
+                            </div>
+                        </div>
+                        <div class="miner-status-badge">Active</div>
+                    </div>
+
+                    <div class="section-label">Environmental Vitals</div>
+                    <div class="vitals-row">
+                        <div class="vital-card">
+                            <div class="vital-label">
+                                <svg
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                    style="width: 11px; height: 11px"
+                                >
+                                    <path
+                                        d="M6 1v6.5"
+                                        stroke="#607080"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                    />
+                                    <circle
+                                        cx="6"
+                                        cy="9"
+                                        r="2"
+                                        fill="#607080"
+                                    />
+                                </svg>
+                                Temperature
+                            </div>
+                            <div class="vital-value" id="temp-val">32.8</div>
+                            <div class="vital-unit">°C · Mine Face Temp</div>
+                        </div>
+                        <div class="vital-card">
+                            <div class="vital-label">
+                                <svg
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                    style="width: 11px; height: 11px"
+                                >
+                                    <path
+                                        d="M6 1C6 1 2 5.5 2 8a4 4 0 008 0C10 5.5 6 1 6 1Z"
+                                        stroke="#607080"
+                                        stroke-width="1.2"
+                                        fill="none"
+                                    />
+                                </svg>
+                                Humidity
+                            </div>
+                            <div class="vital-value" id="hum-val">91.4</div>
+                            <div class="vital-unit">
+                                % RH · Typical Underground
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Gas Detection Sensors</div>
+
+                    <!-- Gas 1: CO (ppm) -->
+                    <div class="gas-card" id="gas1-card">
+                        <div class="gas-card-header">
+                            <span class="gas-name"
+                                >Gas 1 · Carbon Monoxide</span
+                            >
+                            <span class="gas-badge" id="gas1-badge">SAFE</span>
+                        </div>
+                        <div class="gas-value-row">
+                            <span class="gas-value" id="gas1-val">11</span>
+                            <span class="gas-unit">PPM</span>
+                        </div>
+                        <div class="bar-track">
+                            <div
+                                class="bar-fill"
+                                id="gas1-bar"
+                                style="width: 1.1%"
+                            ></div>
+                        </div>
+                        <div class="bar-labels">
+                            <span class="bar-label">0</span>
+                            <span class="bar-label">OSHA PEL: 50 ppm</span>
+                            <span class="bar-label">1000</span>
+                        </div>
+                    </div>
+
+                    <!-- Gas 2: CH4 (% LEL) — LEL of methane = 5% vol = 50 000 ppm -->
+                    <div class="gas-card" id="gas2-card">
+                        <div class="gas-card-header">
+                            <span class="gas-name">Gas 2 · Methane CH₄</span>
+                            <span class="gas-badge" id="gas2-badge">SAFE</span>
+                        </div>
+                        <div class="gas-value-row">
+                            <span class="gas-value" id="gas2-val">3.2</span>
+                            <span class="gas-unit">% LEL</span>
+                        </div>
+                        <div class="bar-track">
+                            <div
+                                class="bar-fill"
+                                id="gas2-bar"
+                                style="width: 3.2%"
+                            ></div>
+                        </div>
+                        <div class="bar-labels">
+                            <span class="bar-label">0%</span>
+                            <span class="bar-label">ALARM: 40% LEL</span>
+                            <span class="bar-label">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- Gas 3: O2 (% vol) — normal 20.9%; safe 19.5–23.5%; deficient <19.5% -->
+                    <div class="gas-card" id="gas3-card">
+                        <div class="gas-card-header">
+                            <span class="gas-name"
+                                >Gas 3 · Oxygen O₂ Level</span
+                            >
+                            <span class="gas-badge" id="gas3-badge"
+                                >NOMINAL</span
+                            >
+                        </div>
+                        <div class="gas-value-row">
+                            <span class="gas-value" id="gas3-val">20.6</span>
+                            <span class="gas-unit">% vol</span>
+                        </div>
+                        <div class="bar-track">
+                            <div
+                                class="bar-fill"
+                                id="gas3-bar"
+                                style="width: 56%"
+                            ></div>
+                        </div>
+                        <div class="bar-labels">
+                            <span class="bar-label">15%</span>
+                            <span class="bar-label">SAFE: 19.5 – 23.5%</span>
+                            <span class="bar-label">25%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ════════════ CENTER: 3D TUNNEL ════════════ -->
+                <div id="center-panel">
+                    <div class="panel-header">
+                        <div class="panel-header-dot"></div>
+                        <span class="panel-title"
+                            >3D Digital Twin — Mine Drift Network</span
+                        >
+                        &nbsp;·&nbsp;
+                        <span
+                            style="
+                                font-size: 9px;
+                                letter-spacing: 0.1em;
+                                color: var(--text-muted);
+                                text-transform: uppercase;
+                            "
+                            >Sector 7 · Drift B · RealSense D457 Point
+                            Cloud</span
+                        >
+                    </div>
+                    <div class="tunnel-container">
+                        <div class="alert-banner" id="alert-banner">
+                            ⚠ &nbsp; CRITICAL GAS ALERT — NODE 01 — EVACUATE
+                            SECTOR 7 IMMEDIATELY &nbsp; ⚠
+                        </div>
+                        <canvas id="tunnel-canvas"></canvas>
+                        <div class="tunnel-overlay-label">
+                            [ REALSENSE D457 POINT CLOUD — DEPTH-COLOURED — LIVE
+                            TELEMETRY OVERLAY ]
+                        </div>
+                        <div class="tunnel-coords">
+                            X: 142.3 m &nbsp;|&nbsp; Y: 38.7 m &nbsp;|&nbsp; Z:
+                            –142.0 m<br />
+                            Heading: 247° SW &nbsp;|&nbsp; Sector: 7-B
+                            &nbsp;|&nbsp; Grade: –2.1°
+                        </div>
+                        <!-- Depth colour legend -->
+                        <div class="depth-colorbar">
+                            <div class="depth-colorbar-label">NEAR</div>
+                            <div
+                                style="
+                                    display: flex;
+                                    gap: 4px;
+                                    align-items: stretch;
+                                "
+                            >
+                                <div class="depth-colorbar-bar"></div>
+                                <div class="depth-tick-wrap">
+                                    <span class="depth-tick">0.5 m</span>
+                                    <span class="depth-tick">3 m</span>
+                                    <span class="depth-tick">6 m</span>
+                                </div>
+                            </div>
+                            <div class="depth-colorbar-label">FAR</div>
+                        </div>
+                        <div class="tunnel-legend">
+                            <div class="legend-item">
+                                <div
+                                    class="legend-dot"
+                                    style="
+                                        background: #00d4ff;
+                                        box-shadow: 0 0 5px #00d4ff;
+                                    "
+                                ></div>
+                                Miner — Node 01
+                            </div>
+                            <div
+                                class="legend-item"
+                                id="legend-cloud"
+                                style="display: none"
+                            >
+                                <div
+                                    class="legend-dot"
+                                    style="background: rgba(255, 23, 68, 0.78)"
+                                ></div>
+                                Gas Plume
+                            </div>
+                            <div class="legend-item">
+                                <div
+                                    class="legend-dot"
+                                    style="background: rgba(88, 112, 148, 0.85)"
+                                ></div>
+                                Steel Arch Rib
+                            </div>
+                            <div class="legend-item">
+                                <div
+                                    style="
+                                        width: 12px;
+                                        height: 3px;
+                                        border-radius: 1px;
+                                        background: rgba(0, 185, 210, 0.55);
+                                        flex-shrink: 0;
+                                    "
+                                ></div>
+                                Rail Track
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ════════════ RIGHT: EVENT LOG ════════════ -->
+                <div class="panel" id="right-panel">
+                    <div class="panel-header">
+                        <div class="panel-header-dot"></div>
+                        <span class="panel-title">Real-Time Event Log</span>
+                    </div>
+                    <div id="event-log"></div>
+                    <div class="log-footer">
+                        <span class="log-count" id="log-count">0 events</span>
+                        <div class="log-indicator">
+                            <div class="log-blink"></div>
+                            Recording
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                "use strict";
+
+                /* ───────────────────────────── STATE ──────────────────────────── */
+                const state = {
+                    emergency: false,
+                    animating: false, // true while animateTelemetry RAF is running
+                    minerFrac: 0, // 0 = entrance, 0.42 = trigger point
+                    minerDir: 1, // +1 = walking into drift, -1 = escaping out
+                    autoTriggered: false, // prevents double-triggering same cycle
+                    escapeTimeout: null, // handle for the direction-flip setTimeout
+                    cloudOrigin: { x: 0, y: 0 }, // gas cloud anchored at detection point
+                    gasCloud: { radius: 0, maxRadius: 0, expanding: false },
+                    startTime: Date.now(),
+                    logCount: 0,
+                    telemetry: {
+                        // REALISTIC VALUES for an underground hard-rock/coal mine at 142 m depth:
+                        temp: 32.8, // °C  – geothermal gradient + diesel plant; 30–36°C is typical
+                        hum: 91.4, // %RH – underground mines are 85–98% RH due to groundwater
+                        gas1: 11, // CO  ppm  – diesel background; OSHA PEL = 50 ppm, IDLH = 1200 ppm
+                        gas2: 3.2, // CH4 % LEL – LEL of methane = 5 % vol = 50 000 ppm; MSHA alarm = 40 % LEL
+                        gas3: 20.6, // O2  % vol – atmospheric is 20.9%; safe range 19.5–23.5%
+                    },
+                };
+
+                /* ───────────────────────────── DOM ────────────────────────────── */
+                const $ = (id) => document.getElementById(id);
+                const els = {
+                    tempVal: $("temp-val"),
+                    humVal: $("hum-val"),
+                    gas1Val: $("gas1-val"),
+                    gas2Val: $("gas2-val"),
+                    gas3Val: $("gas3-val"),
+                    gas1Bar: $("gas1-bar"),
+                    gas2Bar: $("gas2-bar"),
+                    gas3Bar: $("gas3-bar"),
+                    gas1Card: $("gas1-card"),
+                    gas2Card: $("gas2-card"),
+                    gas3Card: $("gas3-card"),
+                    gas1Badge: $("gas1-badge"),
+                    gas2Badge: $("gas2-badge"),
+                    gas3Badge: $("gas3-badge"),
+                    statusDot: $("status-dot"),
+                    statusText: $("status-text"),
+                    statusPill: $("status-pill"),
+                    utcClock: $("utc-clock"),
+                    statUptime: $("stat-uptime"),
+                    statPackets: $("stat-packets"),
+                    statSignal: $("stat-signal"),
+                    eventLog: $("event-log"),
+                    logCount: $("log-count"),
+                    alertBanner: $("alert-banner"),
+                    legendCloud: $("legend-cloud"),
+                    canvas: $("tunnel-canvas"),
+                };
+                const ctx = els.canvas.getContext("2d");
+
+                /* ───────────────────────────── HELPERS ─────────────────────────── */
+                const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+                const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+                const lerp = (a, b, t) => a + (b - a) * t;
+                const fmt1 = (v) => v.toFixed(1);
+                const fmt0 = (v) => Math.round(v).toString();
+
+                function utcNow() {
+                    return new Date().toUTCString().slice(-12, -4);
+                }
+                function fmtTS() {
+                    const d = new Date();
+                    const p = (n) => String(n).padStart(2, "0");
+                    return (
+                        p(d.getUTCHours()) +
+                        ":" +
+                        p(d.getUTCMinutes()) +
+                        ":" +
+                        p(d.getUTCSeconds()) +
+                        "." +
+                        String(d.getUTCMilliseconds()).padStart(3, "0") +
+                        " UTC"
+                    );
+                }
+
+                /* ───────────────────────────── LOG ─────────────────────────────── */
+                function addLog(msg, type = "") {
+                    state.logCount++;
+                    const e = document.createElement("div");
+                    e.className = "log-entry" + (type ? " " + type : "");
+                    e.innerHTML = `<div class="log-time">${fmtTS()}</div><div class="log-message">${msg}</div>`;
+                    els.eventLog.prepend(e);
+                    els.logCount.textContent = `${state.logCount} event${state.logCount !== 1 ? "s" : ""}`;
+                }
+
+                /* ───────────────────────────── CLOCKS ──────────────────────────── */
+                function updateClocks() {
+                    els.utcClock.textContent = "UTC " + utcNow();
+                    const s = Math.floor((Date.now() - state.startTime) / 1000);
+                    const p = (n) => String(n).padStart(2, "0");
+                    els.statUptime.textContent =
+                        p(Math.floor(s / 3600)) +
+                        ":" +
+                        p(Math.floor((s % 3600) / 60)) +
+                        ":" +
+                        p(s % 60);
+                }
+                function updateHeaderStats() {
+                    els.statPackets.textContent =
+                        Math.floor(rand(18, 24)) + " /s";
+                    els.statSignal.textContent =
+                        Math.floor(rand(-62, -44)) + " dBm";
+                }
+
+                /* ───────────────────────────── TELEMETRY ───────────────────────── */
+                function fluctuate() {
+                    if (state.emergency) return;
+                    const t = state.telemetry;
+                    // Temperature is extremely stable underground — tiny drift only
+                    t.temp = clamp(t.temp + rand(-0.02, 0.02), 31.5, 34.5);
+                    // Humidity high and slowly varying
+                    t.hum = clamp(t.hum + rand(-0.3, 0.3), 88.0, 96.0);
+                    // CO: small fluctuations from diesel equipment exhaust background
+                    t.gas1 = clamp(t.gas1 + rand(-0.8, 0.8), 4.0, 18.0);
+                    // CH4 %LEL: very low and stable in normal ventilated conditions
+                    t.gas2 = clamp(t.gas2 + rand(-0.15, 0.15), 1.0, 5.5);
+                    // O2: extremely stable in nominal conditions
+                    t.gas3 = clamp(t.gas3 + rand(-0.02, 0.02), 20.3, 20.8);
+                    renderTelemetry();
+                }
+
+                function renderTelemetry() {
+                    const t = state.telemetry;
+                    els.tempVal.textContent = fmt1(t.temp);
+                    els.humVal.textContent = fmt1(t.hum);
+                    els.gas1Val.textContent = fmt0(t.gas1);
+                    els.gas2Val.textContent = fmt1(t.gas2);
+                    els.gas3Val.textContent = fmt1(t.gas3);
+                    // Bar widths — each gas has its own realistic scale
+                    els.gas1Bar.style.width =
+                        clamp((t.gas1 / 1000) * 100, 0, 100) + "%"; // 0–1000 ppm
+                    els.gas2Bar.style.width = clamp(t.gas2, 0, 100) + "%"; // 0–100 %LEL
+                    els.gas3Bar.style.width =
+                        clamp(((t.gas3 - 15) / 10) * 100, 0, 100) + "%"; // 15–25 %vol
+                }
+
+                /* ───────────────────────────── SEEDED PRNG ─────────────────────── */
+                // Used so the point cloud is deterministic between frames (no flicker)
+                function makePRNG(seed) {
+                    let s = seed >>> 0;
+                    return function () {
+                        s = (s + 0x6d2b79f5) >>> 0;
+                        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+                        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+                    };
+                }
+
+                /* ───────────────────────────── DEPTH COLOUR ────────────────────── */
+                // Standard LiDAR/depth-camera convention: near = warm (red/orange), far = cool (blue)
+                function depthRGBA(d, a) {
+                    let r, g, b;
+                    if (d < 0.25) {
+                        const t = d / 0.25;
+                        r = 255;
+                        g = Math.round(lerp(55, 200, t));
+                        b = 0;
+                    } else if (d < 0.5) {
+                        const t = (d - 0.25) / 0.25;
+                        r = Math.round(lerp(255, 10, t));
+                        g = Math.round(lerp(200, 225, t));
+                        b = Math.round(lerp(0, 55, t));
+                    } else if (d < 0.75) {
+                        const t = (d - 0.5) / 0.25;
+                        r = Math.round(lerp(10, 0, t));
+                        g = Math.round(lerp(225, 185, t));
+                        b = Math.round(lerp(55, 255, t));
+                    } else {
+                        const t = (d - 0.75) / 0.25;
+                        r = 0;
+                        g = Math.round(lerp(185, 42, t));
+                        b = 255;
+                    }
+                    return `rgba(${r},${g},${b},${a.toFixed(2)})`;
+                }
+
+                /* ───────────────────────────── TUNNEL GEOMETRY ─────────────────── */
+                // A mine drift (horizontal tunnel) — horseshoe cross-section.
+                // Near frame is centered low; perspective converges upward to vanishing point.
+                const TG = {
+                    vxF: 0.5,
+                    vyF: 0.31,
+                    nyCF: 0.73,
+                    hwF: 0.41,
+                    hhF: 0.33,
+                    fhF: 0.055,
+                    persp: 0.88,
+                };
+
+                function tAt(f, W, H) {
+                    const s = 1 - f * TG.persp;
+                    return {
+                        cx: W * TG.vxF,
+                        cy: lerp(H * TG.nyCF, H * TG.vyF, f),
+                        hw: W * TG.hwF * s,
+                        hh: H * TG.hhF * s,
+                        fh: H * TG.fhF * s,
+                        s,
+                        f,
+                    };
+                }
+
+                /* ───────────────────────────── POINT CLOUD ─────────────────────── */
+                let ptCloud = [];
+
+                function buildPointCloud() {
+                    ptCloud = [];
+                    const c = els.canvas,
+                        W = c.width,
+                        H = c.height;
+                    if (!W || !H) return;
+                    const rng = makePRNG(0xcafe1234);
+
+                    // Depth slices: denser near, sparser far (matches real sensor behaviour)
+                    const slices = [];
+                    for (let f = 0.02; f < 0.95; ) {
+                        slices.push(f);
+                        f += lerp(0.018, 0.065, f);
+                    }
+
+                    slices.forEach((f) => {
+                        const { cx, cy, hw, hh, fh } = tAt(f, W, H);
+                        const density = Math.max(2, Math.round((1 - f) * 22));
+                        const ptSz = lerp(2.5, 0.5, f);
+                        const alpha = lerp(0.75, 0.16, f);
+
+                        // LEFT WALL — roughly vertical with rock roughness noise
+                        for (let i = 0; i < density; i++) {
+                            const ty = rng();
+                            const nx = (rng() - 0.5) * hw * 0.16;
+                            const ny = (rng() - 0.5) * hh * 0.08;
+                            const y =
+                                cy - hh * 0.55 + (hh * 0.55 + fh) * ty + ny;
+                            if (y >= cy - hh * 0.6 && y <= cy + fh * 1.06)
+                                ptCloud.push({
+                                    x: cx - hw + nx,
+                                    y,
+                                    d: f,
+                                    sz: ptSz * (0.65 + rng() * 0.7),
+                                    a: alpha,
+                                });
+                        }
+                        // RIGHT WALL — mirror
+                        for (let i = 0; i < density; i++) {
+                            const ty = rng();
+                            const nx = (rng() - 0.5) * hw * 0.16;
+                            const ny = (rng() - 0.5) * hh * 0.08;
+                            const y =
+                                cy - hh * 0.55 + (hh * 0.55 + fh) * ty + ny;
+                            if (y >= cy - hh * 0.6 && y <= cy + fh * 1.06)
+                                ptCloud.push({
+                                    x: cx + hw + nx,
+                                    y,
+                                    d: f,
+                                    sz: ptSz * (0.65 + rng() * 0.7),
+                                    a: alpha,
+                                });
+                        }
+                        // CEILING — horseshoe arch shape, very rough (blasted rock — lots of vertical scatter)
+                        for (let i = 0; i < density; i++) {
+                            const tx = rng();
+                            // Match drawArchRib exactly: legs at hh*0.52, apex at hh*1.06
+                            const archH = lerp(
+                                0.52,
+                                1.06,
+                                Math.sin(tx * Math.PI),
+                            );
+                            const nx = (rng() - 0.5) * hw * 0.07;
+                            const ny = (rng() - 0.5) * hh * 0.09; // tight scatter — stays on arch surface
+                            const x = cx - hw + hw * 2 * tx + nx;
+                            const y = clamp(
+                                cy - hh * archH + ny,
+                                cy - hh * 1.14,
+                                cy - hh * 0.44,
+                            );
+                            ptCloud.push({
+                                x,
+                                y,
+                                d: f,
+                                sz: ptSz * (0.55 + rng() * 0.8),
+                                a: alpha * 0.88,
+                            });
+                        }
+                        // FLOOR — relatively flat, some rock debris scatter
+                        const flPts = Math.max(1, Math.round(density * 0.35));
+                        for (let i = 0; i < flPts; i++) {
+                            const tx = rng();
+                            const x =
+                                cx -
+                                hw * 0.88 +
+                                hw * 1.76 * tx +
+                                (rng() - 0.5) * hw * 0.07;
+                            const y = cy + fh * (0.82 + rng() * 0.32);
+                            ptCloud.push({
+                                x,
+                                y,
+                                d: f,
+                                sz: ptSz * (0.4 + rng() * 0.4),
+                                a: alpha * 0.45,
+                            });
+                        }
+                    });
+                }
+
+                function drawPointCloud() {
+                    // Colour each point by its 2-D distance from the miner's current position
+                    // near the miner = warm red/orange, far away = cool cyan/blue
+                    const maxDist =
+                        Math.max(els.canvas.width, els.canvas.height) * 0.55;
+                    ptCloud.forEach((p) => {
+                        const dx = p.x - MINER.x;
+                        const dy = p.y - MINER.y;
+                        const distNorm = clamp(
+                            Math.sqrt(dx * dx + dy * dy) / maxDist,
+                            0,
+                            1,
+                        );
+                        ctx.fillStyle = depthRGBA(distNorm, p.a);
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
+
+                /* ─── Steel H-rib arch support (standard mine support every ~3–5 m) */
+                function drawArchRib(f, W, H) {
+                    const { cx, cy, hw, hh, fh } = tAt(f, W, H);
+                    const alpha = lerp(0.78, 0.18, f);
+                    const lw = lerp(1.5, 0.4, f);
+                    const legTopY = cy - hh * 0.52;
+                    const archApexY = cy - hh * 1.06;
+                    const floorY = cy + fh;
+
+                    ctx.save();
+                    ctx.strokeStyle = `rgba(88,112,148,${alpha})`;
+                    ctx.lineWidth = lw;
+
+                    // Left leg (vertical steel member)
+                    ctx.beginPath();
+                    ctx.moveTo(cx - hw, floorY);
+                    ctx.lineTo(cx - hw, legTopY);
+                    ctx.stroke();
+                    // Right leg
+                    ctx.beginPath();
+                    ctx.moveTo(cx + hw, floorY);
+                    ctx.lineTo(cx + hw, legTopY);
+                    ctx.stroke();
+                    // Horseshoe arch crown — bezier (NOT a smooth ellipse; real arch ribs are bent steel)
+                    ctx.beginPath();
+                    ctx.moveTo(cx - hw, legTopY);
+                    ctx.bezierCurveTo(
+                        cx - hw * 0.26,
+                        archApexY,
+                        cx + hw * 0.26,
+                        archApexY,
+                        cx + hw,
+                        legTopY,
+                    );
+                    ctx.stroke();
+                    // Floor sill plate
+                    ctx.beginPath();
+                    ctx.moveTo(cx - hw, floorY);
+                    ctx.lineTo(cx + hw, floorY);
+                    ctx.stroke();
+                    // Horizontal brace (visible on larger / nearer frames)
+                    if (hw > 38) {
+                        ctx.globalAlpha = 0.32;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - hw, cy - hh * 0.1);
+                        ctx.lineTo(cx + hw, cy - hh * 0.1);
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                    ctx.restore();
+                }
+
+                /* ─── Wall-line connectors (joining arch frames along tunnel length) */
+                function drawWallLines(W, H) {
+                    const fracs = [0, 0.22, 0.44, 0.62, 0.77, 0.88];
+                    for (let i = 0; i < fracs.length - 1; i++) {
+                        const a = tAt(fracs[i], W, H);
+                        const b = tAt(fracs[i + 1], W, H);
+                        const al = lerp(0.32, 0.08, fracs[i]);
+
+                        ctx.save();
+                        ctx.strokeStyle = `rgba(50,70,100,${al})`;
+                        ctx.lineWidth = 0.7;
+
+                        const pairs = [
+                            [a.cy + a.fh, b.cy + b.fh],
+                            [a.cy, b.cy],
+                            [a.cy - a.hh * 0.52, b.cy - b.hh * 0.52],
+                        ];
+                        pairs.forEach(([y1, y2]) => {
+                            ctx.beginPath();
+                            ctx.moveTo(a.cx - a.hw, y1);
+                            ctx.lineTo(b.cx - b.hw, y2);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(a.cx + a.hw, y1);
+                            ctx.lineTo(b.cx + b.hw, y2);
+                            ctx.stroke();
+                        });
+                        ctx.restore();
+                    }
+                }
+
+                /* ─── Narrow-gauge rail tracks with cross-ties (sleepers) ─────── */
+                function drawRailTracks(W, H) {
+                    const offsets = [-0.13, 0.13]; // fraction of hw
+                    const near = tAt(0, W, H);
+                    const far = tAt(0.93, W, H);
+
+                    offsets.forEach((off) => {
+                        const x1 = near.cx + near.hw * off,
+                            y1 = near.cy + near.fh * 0.74;
+                        const x2 = far.cx + far.hw * off,
+                            y2 = far.cy + far.fh * 0.74;
+                        ctx.save();
+                        ctx.strokeStyle = "rgba(0,185,210,0.40)";
+                        ctx.lineWidth = 1.7;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                        ctx.restore();
+                    });
+
+                    // Cross-ties — perspective-bunched toward far end
+                    for (let i = 0; i < 15; i++) {
+                        const f = Math.pow(i / 15, 1.45);
+                        const { cx, cy, hw, fh } = tAt(f, W, H);
+                        const ty = cy + fh * 0.74;
+                        const span = hw * 0.13 + hw * 0.09;
+                        ctx.save();
+                        ctx.strokeStyle = `rgba(0,150,182,${lerp(0.44, 0.09, f)})`;
+                        ctx.lineWidth = lerp(2.0, 0.45, f);
+                        ctx.beginPath();
+                        ctx.moveTo(cx - span, ty);
+                        ctx.lineTo(cx + span, ty);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+
+                /* ─── Rock bolt markers (ceiling safety bolts — mandatory in modern mines) */
+                function drawRockBolts(W, H) {
+                    const bolts = [
+                        { f: 0.1, ox: 0.0 },
+                        { f: 0.1, ox: -0.5 },
+                        { f: 0.1, ox: 0.5 },
+                        { f: 0.26, ox: -0.35 },
+                        { f: 0.26, ox: 0.35 },
+                        { f: 0.42, ox: 0.0 },
+                        { f: 0.42, ox: -0.55 },
+                        { f: 0.42, ox: 0.55 },
+                        { f: 0.57, ox: -0.28 },
+                        { f: 0.57, ox: 0.28 },
+                        { f: 0.7, ox: 0.0 },
+                        { f: 0.7, ox: -0.44 },
+                        { f: 0.7, ox: 0.44 },
+                    ];
+                    bolts.forEach(({ f, ox }) => {
+                        const { cx, cy, hw, hh } = tAt(f, W, H);
+                        const bx = cx + hw * ox;
+                        const tx = (ox + 1) / 2;
+                        const archMult = 1.0 + 0.3 * Math.sin(tx * Math.PI);
+                        const topY = cy - hh * archMult;
+                        const boltLen = hh * 0.15;
+                        const al = lerp(0.58, 0.1, f);
+                        const r = lerp(2.6, 0.7, f);
+
+                        ctx.save();
+                        ctx.strokeStyle = `rgba(110,140,172,${al})`;
+                        ctx.lineWidth = lerp(1.3, 0.4, f);
+                        ctx.beginPath();
+                        ctx.moveTo(bx, topY);
+                        ctx.lineTo(bx, topY + boltLen);
+                        ctx.stroke();
+                        ctx.fillStyle = `rgba(132,162,198,${al})`;
+                        ctx.beginPath();
+                        ctx.arc(bx, topY + boltLen, r, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    });
+                }
+
+                /* ─── Water seepage streaks (groundwater seepage — very common underground) */
+                function drawSeepage(W, H) {
+                    const rng = makePRNG(0xb00bc0de | 0);
+                    const pts = [
+                        { f: 0.08, side: -1 },
+                        { f: 0.18, side: 1 },
+                        { f: 0.31, side: -1 },
+                        { f: 0.46, side: 1 },
+                        { f: 0.61, side: -1 },
+                        { f: 0.74, side: 1 },
+                    ];
+                    pts.forEach(({ f, side }) => {
+                        const { cx, cy, hw, hh, fh } = tAt(f, W, H);
+                        const wx = cx + side * (hw + (rng() - 0.5) * hw * 0.1);
+                        const topY = cy - hh * 0.32;
+                        const botY = topY + hh * (0.28 + rng() * 0.28);
+                        const al = lerp(0.18, 0.04, f);
+                        ctx.save();
+                        ctx.strokeStyle = `rgba(100,180,220,${al})`;
+                        ctx.lineWidth = lerp(0.9, 0.3, f);
+                        ctx.beginPath();
+                        ctx.moveTo(wx, topY);
+                        ctx.lineTo(wx + (rng() - 0.5) * 4, botY);
+                        ctx.stroke();
+                        ctx.restore();
+                    });
+                }
+
+                /* ─── LiDAR sweep line ─────────────────────────────────────────── */
+                function drawScanLine(W, H, t) {
+                    const near = tAt(0, W, H);
+                    const topY = near.cy - near.hh * 1.06;
+                    const botY = near.cy + near.fh;
+                    const scanY =
+                        topY + (botY - topY) * ((Math.sin(t * 0.38) + 1) / 2);
+                    const sg = ctx.createLinearGradient(
+                        0,
+                        scanY - 5,
+                        0,
+                        scanY + 5,
+                    );
+                    sg.addColorStop(0, "rgba(0,212,255,0)");
+                    sg.addColorStop(0.5, "rgba(0,212,255,0.09)");
+                    sg.addColorStop(1, "rgba(0,212,255,0)");
+                    ctx.fillStyle = sg;
+                    ctx.fillRect(0, scanY - 5, W, 10);
+                }
+
+                /* ─── Gas cloud (emergency) ────────────────────────────────────── */
+                function drawGasCloud(cx, cy, radius) {
+                    [
+                        { r: radius, a: 0.07, c: "255,23,68" },
+                        { r: radius * 0.7, a: 0.13, c: "255,55,20" },
+                        { r: radius * 0.42, a: 0.22, c: "255,110,25" },
+                        { r: radius * 0.18, a: 0.36, c: "255,190,40" },
+                    ].forEach((l) => {
+                        const g = ctx.createRadialGradient(
+                            cx,
+                            cy,
+                            0,
+                            cx,
+                            cy,
+                            l.r,
+                        );
+                        g.addColorStop(0, `rgba(${l.c},${l.a})`);
+                        g.addColorStop(
+                            0.55,
+                            `rgba(${l.c},${(l.a * 0.5).toFixed(2)})`,
+                        );
+                        g.addColorStop(1, `rgba(${l.c},0)`);
+                        ctx.fillStyle = g;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, l.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    // Turbulent edge blobs
+                    const seed = Math.floor(Date.now() / 110);
+                    for (let i = 0; i < 20; i++) {
+                        const ang = (i / 20) * Math.PI * 2 + seed * 0.055;
+                        const r =
+                            radius * (0.85 + Math.sin(seed + i * 1.4) * 0.14);
+                        const px = cx + Math.cos(ang) * r,
+                            py = cy + Math.sin(ang) * r;
+                        const pr = 3.5 + Math.sin(seed * 0.28 + i) * 3.2;
+                        ctx.fillStyle = "rgba(255,50,18,0.15)";
+                        ctx.beginPath();
+                        ctx.arc(px, py, pr, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.save();
+                    ctx.strokeStyle = "rgba(255,23,68,0.30)";
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([5, 8]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
+
+                /* ─── Miner node dot ───────────────────────────────────────────── */
+                const MINER = { x: 0, y: 0 };
+
+                function drawMinerDot(x, y, t, scale = 1) {
+                    const em = state.emergency;
+                    const base = lerp(7, 17, scale);
+                    const pr =
+                        base + Math.sin(t * 3) * Math.max(1.5, scale * 4);
+                    const hg = ctx.createRadialGradient(x, y, 0, x, y, pr + 10);
+                    hg.addColorStop(
+                        0,
+                        em ? "rgba(255,23,68,.28)" : "rgba(0,212,255,.28)",
+                    );
+                    hg.addColorStop(1, "rgba(0,0,0,0)");
+                    ctx.fillStyle = hg;
+                    ctx.beginPath();
+                    ctx.arc(x, y, pr + 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.save();
+                    ctx.strokeStyle = em ? "#ff1744" : "#00d4ff";
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.arc(x, y, pr, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    const cg = ctx.createRadialGradient(
+                        x - 2,
+                        y - 2,
+                        0,
+                        x,
+                        y,
+                        8,
+                    );
+                    cg.addColorStop(0, "#ffffff");
+                    cg.addColorStop(1, em ? "#ff1744" : "#00d4ff");
+                    ctx.fillStyle = cg;
+                    ctx.beginPath();
+                    ctx.arc(x, y, Math.max(3.5, 7 * scale), 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.save();
+                    ctx.fillStyle = em ? "#ff1744" : "#00d4ff";
+                    ctx.font = 'bold 11px "Courier New"';
+                    ctx.fillText("◀ NODE 01", x + 14, y + 4);
+                    ctx.restore();
+                }
+
+                /* ─── Dim secondary nodes (deeper in drift) ────────────────────── */
+                function drawDimNode(x, y, t, label) {
+                    const r = 3.5 + Math.sin(t * 1.6 + x) * 1;
+                    ctx.fillStyle = "rgba(0,212,255,0.22)";
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.save();
+                    ctx.fillStyle = "rgba(96,112,128,0.58)";
+                    ctx.font = '9px "Courier New"';
+                    ctx.fillText(label, x + 7, y + 3);
+                    ctx.restore();
+                }
+
+                /* ─── Ranging rings (nominal only) ─────────────────────────────── */
+                function drawRangeRings(cx, cy, t, scale = 1) {
+                    if (state.emergency) return;
+                    [55, 110, 165].forEach((r, i) => {
+                        const sr = r * clamp(scale, 0.32, 1.0);
+                        ctx.save();
+                        ctx.strokeStyle = `rgba(0,212,255,${0.04 + i * 0.01})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.setLineDash([3, 10]);
+                        ctx.lineDashOffset = t * 7;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, sr, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.restore();
+                    });
+                }
+
+                /* ─── Main draw orchestrator ────────────────────────────────────── */
+                function drawScene() {
+                    const c = els.canvas,
+                        W = c.width,
+                        H = c.height;
+                    const t = Date.now() / 1000;
+
+                    // Compute miner world position from depth fraction (perspective-aware)
+                    const mf = tAt(state.minerFrac, W, H);
+                    MINER.x = mf.cx;
+                    MINER.y = mf.cy + mf.fh * 0.38; // walking height above floor
+                    const minerScale = clamp(mf.s, 0.32, 1.0); // scale with depth, min visible
+
+                    // 1. Solid dark background
+                    ctx.fillStyle = "#080b0e";
+                    ctx.fillRect(0, 0, W, H);
+                    // 2. Radial vignette
+                    const vg = ctx.createRadialGradient(
+                        W / 2,
+                        H / 2,
+                        0,
+                        W / 2,
+                        H / 2,
+                        Math.max(W, H) * 0.65,
+                    );
+                    vg.addColorStop(0, "rgba(12,20,32,0.45)");
+                    vg.addColorStop(1, "rgba(0,0,0,0.82)");
+                    ctx.fillStyle = vg;
+                    ctx.fillRect(0, 0, W, H);
+                    // 3. Point cloud (depth-coloured rock surfaces from RealSense D457)
+                    drawPointCloud();
+                    // 4. Water seepage streaks
+                    drawSeepage(W, H);
+                    // 5. Structural wall-line connectors
+                    drawWallLines(W, H);
+                    // 6. Steel arch rib supports (spaced ~3–5 m along drift)
+                    [0, 0.22, 0.44, 0.62, 0.77, 0.88].forEach((f) =>
+                        drawArchRib(f, W, H),
+                    );
+                    // 7. Rail tracks & sleepers
+                    drawRailTracks(W, H);
+                    // 8. Rock bolt markers
+                    drawRockBolts(W, H);
+                    // 9. LiDAR sweep line
+                    drawScanLine(W, H, t);
+                    // 10. Gas cloud — anchored at the detection origin, not the moving miner
+                    if (state.gasCloud.radius > 1)
+                        drawGasCloud(
+                            state.cloudOrigin.x,
+                            state.cloudOrigin.y,
+                            state.gasCloud.radius,
+                        );
+                    // 11. Secondary nodes deeper in drift
+                    drawDimNode(W * 0.43, H * 0.46, t, "Node 02");
+                    drawDimNode(W * 0.51, H * 0.4, t, "Node 03");
+                    drawDimNode(W * 0.5, H * 0.35, t, "Node 04");
+                    // 12. Range rings (nominal) — scaled with miner depth
+                    drawRangeRings(MINER.x, MINER.y, t, minerScale);
+                    // 13. Miner dot (on top of everything) — scaled with perspective depth
+                    drawMinerDot(MINER.x, MINER.y, t, minerScale);
+                }
+
+                /* ───────────────────────────── ANIMATION LOOP ──────────────────── */
+                function loop() {
+                    // ── Automated narrative: walk in → spike → escape → reset → repeat ──
+                    const TRIGGER_FRAC = 0.42; // depth at which gas auto-triggers
+                    if (state.minerDir === 1) {
+                        state.minerFrac += 0.00117; // walk in (~6 s to trigger point at 60 fps)
+                        state.minerFrac = Math.min(
+                            state.minerFrac,
+                            TRIGGER_FRAC + 0.05,
+                        ); // soft cap
+                        if (
+                            state.minerFrac >= TRIGGER_FRAC &&
+                            !state.emergency &&
+                            !state.autoTriggered
+                        ) {
+                            state.autoTriggered = true;
+                            triggerEmergency();
+                        }
+                    } else {
+                        state.minerFrac -= 0.00095; // measured escape (~7.5 s cap-to-exit at 60 fps)
+                        // Recovery fires the moment miner crosses back over the danger boundary —
+                        // the same line that triggered the alarm going in
+                        if (state.minerFrac < TRIGGER_FRAC && state.emergency) {
+                            resetEmergency();
+                        }
+                        if (state.minerFrac <= 0) {
+                            state.minerFrac = 0;
+                            state.minerDir = 1;
+                            state.autoTriggered = false;
+                            if (state.emergency) resetEmergency(); // safety fallback
+                        }
+                    }
+
+                    // Gas cloud expansion
+                    if (
+                        state.gasCloud.expanding &&
+                        state.gasCloud.radius < state.gasCloud.maxRadius
+                    ) {
+                        state.gasCloud.radius = Math.min(
+                            state.gasCloud.maxRadius,
+                            state.gasCloud.radius +
+                                state.gasCloud.maxRadius * 0.02,
+                        );
+                    }
+                    drawScene();
+                    updateClocks();
+                    requestAnimationFrame(loop);
+                }
+
+                /* ─── Smooth telemetry animation (used by both emergency and reset) ─ */
+                let animRaf = null;
+
+                function animateTelemetry(targetVals, durationMs, easeFn) {
+                    if (animRaf) {
+                        cancelAnimationFrame(animRaf);
+                        animRaf = null;
+                    }
+                    state.animating = true;
+                    const from = { ...state.telemetry };
+                    const start = performance.now();
+                    // Disable CSS width transition during JS-driven animation to prevent lag
+                    [els.gas1Bar, els.gas2Bar, els.gas3Bar].forEach(
+                        (el) => (el.style.transition = "none"),
+                    );
+
+                    function tick(now) {
+                        const raw = Math.min(1, (now - start) / durationMs);
+                        const e = easeFn(raw);
+                        state.telemetry.gas1 = lerp(
+                            from.gas1,
+                            targetVals.gas1,
+                            e,
+                        );
+                        state.telemetry.gas2 = lerp(
+                            from.gas2,
+                            targetVals.gas2,
+                            e,
+                        );
+                        state.telemetry.gas3 = lerp(
+                            from.gas3,
+                            targetVals.gas3,
+                            e,
+                        );
+                        state.telemetry.temp = lerp(
+                            from.temp,
+                            targetVals.temp,
+                            e,
+                        );
+                        state.telemetry.hum = lerp(from.hum, targetVals.hum, e);
+                        // Push values to DOM every frame
+                        els.gas1Val.textContent = fmt0(state.telemetry.gas1);
+                        els.gas2Val.textContent = fmt1(state.telemetry.gas2);
+                        els.gas3Val.textContent = fmt1(state.telemetry.gas3);
+                        els.tempVal.textContent = fmt1(state.telemetry.temp);
+                        els.humVal.textContent = fmt1(state.telemetry.hum);
+                        els.gas1Bar.style.width =
+                            clamp((state.telemetry.gas1 / 1000) * 100, 0, 100) +
+                            "%";
+                        els.gas2Bar.style.width =
+                            clamp(state.telemetry.gas2, 0, 100) + "%";
+                        els.gas3Bar.style.width =
+                            clamp(
+                                ((state.telemetry.gas3 - 15) / 10) * 100,
+                                0,
+                                100,
+                            ) + "%";
+                        if (raw < 1) {
+                            animRaf = requestAnimationFrame(tick);
+                        } else {
+                            // Restore CSS transition so post-animation jitter is smooth
+                            [els.gas1Bar, els.gas2Bar, els.gas3Bar].forEach(
+                                (el) => (el.style.transition = ""),
+                            );
+                            animRaf = null;
+                            state.animating = false;
+                        }
+                    }
+                    animRaf = requestAnimationFrame(tick);
+                }
+
+                /* ───────────────────────────── EMERGENCY (Enter) ───────────────── */
+                function triggerEmergency() {
+                    if (state.emergency) return;
+                    state.emergency = true;
+
+                    // Define emergency target values
+                    const targets = {
+                        gas1: 640 + rand(0, 110), // CO ppm
+                        gas2: 44 + rand(0, 12), // CH4 %LEL
+                        gas3: 18.2 - rand(0, 0.5), // O2 %vol (drops)
+                        temp: clamp(
+                            state.telemetry.temp + 2.2 + rand(0, 0.8),
+                            33.5,
+                            38.0,
+                        ),
+                        hum: 97.2 + rand(0, 1.5),
+                    };
+
+                    // 1. Immediately flash visual alerts (cards, badges, banner, status)
+                    els.gas1Card.classList.add("critical");
+                    els.gas1Val.classList.add("critical");
+                    els.gas1Bar.classList.add("critical");
+                    els.gas1Badge.textContent = "CRITICAL";
+                    els.gas1Badge.classList.add("critical");
+
+                    els.gas2Card.classList.add("critical");
+                    els.gas2Val.classList.add("critical");
+                    els.gas2Bar.classList.add("critical");
+                    els.gas2Badge.textContent = "CRITICAL";
+                    els.gas2Badge.classList.add("critical");
+
+                    els.gas3Card.classList.add("deficient");
+                    els.gas3Val.classList.add("deficient");
+                    els.gas3Bar.classList.add("deficient");
+                    els.gas3Badge.textContent = "DEFICIENT";
+                    els.gas3Badge.classList.add("deficient");
+
+                    els.statusDot.classList.add("emergency");
+                    els.statusText.classList.add("emergency");
+                    els.statusText.textContent =
+                        "EMERGENCY — Gas Threshold Breached";
+                    els.statusPill.style.background = "rgba(255,23,68,0.09)";
+                    els.statusPill.style.borderColor = "rgba(255,23,68,0.38)";
+                    els.alertBanner.style.display = "block";
+
+                    // 2. Anchor gas cloud at miner's current position, start expanding
+                    state.cloudOrigin.x = MINER.x;
+                    state.cloudOrigin.y = MINER.y;
+                    state.gasCloud.radius = 6;
+                    state.gasCloud.maxRadius =
+                        Math.min(els.canvas.width, els.canvas.height) * 0.52;
+                    state.gasCloud.expanding = true;
+                    els.legendCloud.style.display = "flex";
+
+                    // 3. Gradually animate numbers to emergency levels — easeInSine: slow build like
+                    // accumulating gas, not a sudden spike
+                    animateTelemetry(
+                        targets,
+                        4000,
+                        (t) => 1 - Math.cos((t * Math.PI) / 2),
+                    );
+
+                    // 4. Stagger log entries for cascading "boom boom boom" alarm feel
+                    addLog(
+                        "CRITICAL: TOXIC GAS THRESHOLD BREACHED — NODE 01.",
+                        "critical",
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                `CO: ${fmt0(targets.gas1)} ppm — Serious poisoning risk. OSHA IDLH = 1200 ppm. Evacuate now.`,
+                                "critical",
+                            ),
+                        600,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                `CH4: ${fmt1(targets.gas2)}% LEL — Above MSHA 40% LEL mandatory evacuation limit.`,
+                                "critical",
+                            ),
+                        1200,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                `O₂: ${fmt1(targets.gas3)}% vol — OXYGEN DEFICIENT. Methane displacing air. Min safe = 19.5%.`,
+                                "critical",
+                            ),
+                        1800,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "Temp rising — Exothermic oxidation. Ventilation disrupted.",
+                                "warning",
+                            ),
+                        2400,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "Humidity 97%+ — Stagnant air pocket forming. Fresh-air intake compromised.",
+                                "warning",
+                            ),
+                        2900,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "Emergency protocol ACTIVE — Evacuation signal broadcast to all Sector 7 nodes.",
+                                "warning",
+                            ),
+                        3400,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "Gas plume propagation model initialised — Drift B geometry loaded.",
+                                "warning",
+                            ),
+                        3800,
+                    );
+
+                    // After miner registers the alarm, he turns and flees
+                    // Recovery is NOT time-based — it fires when he physically crosses back over the
+                    // danger line (handled in the loop). The nested setTimeout is removed.
+                    if (state.escapeTimeout) clearTimeout(state.escapeTimeout);
+                    state.escapeTimeout = setTimeout(() => {
+                        state.minerDir = -1; // turn and run
+                        state.escapeTimeout = null;
+                    }, 2200); // pause at peak long enough for alarm to register, then flee
+                }
+
+                /* ───────────────────────────── RESET (Esc) ─────────────────────── */
+                function resetEmergency() {
+                    if (!state.emergency) return;
+                    state.emergency = false;
+
+                    // Cancel any pending escape schedule, ensure miner heads back out
+                    if (state.escapeTimeout) {
+                        clearTimeout(state.escapeTimeout);
+                        state.escapeTimeout = null;
+                    }
+                    state.autoTriggered = false;
+                    state.minerDir = -1; // always walk back toward exit after a reset
+
+                    // Define safe recovery targets
+                    const targets = {
+                        gas1: rand(7, 16),
+                        gas2: rand(1.5, 4.5),
+                        gas3: rand(20.4, 20.7),
+                        temp: rand(32.0, 33.5),
+                        hum: rand(89.0, 93.0),
+                    };
+
+                    // 1. Immediately remove all visual alerts
+                    [els.gas1Card, els.gas2Card].forEach((el) =>
+                        el.classList.remove("critical"),
+                    );
+                    [els.gas1Val, els.gas2Val].forEach((el) =>
+                        el.classList.remove("critical"),
+                    );
+                    [els.gas1Bar, els.gas2Bar].forEach((el) =>
+                        el.classList.remove("critical"),
+                    );
+                    els.gas1Badge.textContent = "SAFE";
+                    els.gas1Badge.classList.remove("critical");
+                    els.gas2Badge.textContent = "SAFE";
+                    els.gas2Badge.classList.remove("critical");
+
+                    els.gas3Card.classList.remove("deficient");
+                    els.gas3Val.classList.remove("deficient");
+                    els.gas3Bar.classList.remove("deficient");
+                    els.gas3Badge.textContent = "NOMINAL";
+                    els.gas3Badge.classList.remove("deficient");
+
+                    els.statusDot.classList.remove("emergency");
+                    els.statusText.classList.remove("emergency");
+                    els.statusText.textContent =
+                        "System Online — Telemetry Active";
+                    els.statusPill.style.background = "";
+                    els.statusPill.style.borderColor = "";
+                    els.alertBanner.style.display = "none";
+
+                    state.gasCloud.radius = 0;
+                    state.gasCloud.maxRadius = 0;
+                    state.gasCloud.expanding = false;
+                    els.legendCloud.style.display = "none";
+
+                    // 2. Gradually animate numbers back to safe levels — easeInOutQuad: smooth recovery
+                    // Duration matches the gradual ramp-up so descent feels symmetric
+                    animateTelemetry(targets, 3500, (t) =>
+                        t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+                    );
+
+                    // 3. Stagger log entries across the recovery window
+                    addLog(
+                        "Emergency cleared. System returned to nominal operating state.",
+                        "success",
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "Ventilation restored. O₂ recovering toward 20.9%. Gases dispersing.",
+                                "info",
+                            ),
+                        1000,
+                    );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "All Sector 7 nodes standing down. Post-incident sweep in progress.",
+                                "info",
+                            ),
+                        2000,
+                    );
+                }
+
+                /* ───────────────────────────── KEYBOARD ───────────────────────── */
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        triggerEmergency();
+                    }
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        resetEmergency();
+                    }
+                });
+
+                /* ───────────────────────────── HEARTBEAT LOG (10 s) ────────────── */
+                const nomMsgs = [
+                    "Node 01: NOMINAL — CO 11 ppm | CH4 3.2% LEL | O2 20.6% vol. All within safe parameters.",
+                    "Node 01: Telemetry packet received. RSSI –54 dBm. Vest battery 94%.",
+                    "Node 01: Env scan complete. No anomalies. Ventilation flow nominal at 4.2 m³/s.",
+                    "Node 01: Heartbeat OK. Position confirmed — Sector 7-B, 142 m depth.",
+                    "System: RealSense D457 point cloud refreshed — 847 pts, 6.2 m range. No drift.",
+                    "System: Command Centre uplink active. Round-trip latency 18 ms.",
+                    "System: Ventilation fan at 100%. Fresh-air intake normal. CO₂ 0.04% (atmospheric).",
+                    "Node 02: NOMINAL — No gas anomalies at depth 138 m. O₂ 20.7% vol.",
+                ];
+                let nomIdx = 0;
+                setInterval(() => {
+                    if (!state.emergency)
+                        addLog(nomMsgs[nomIdx++ % nomMsgs.length]);
+                }, 10000);
+
+                /* ───────────────────────────── 1-SECOND TICK ───────────────────── */
+                setInterval(() => {
+                    // Skip fluctuation/jitter while animateTelemetry RAF is running
+                    if (!state.animating) {
+                        fluctuate();
+                        if (state.emergency) {
+                            // Tiny jitter — realistic sensor micro-variance, not jarring jumps
+                            state.telemetry.gas1 = clamp(
+                                state.telemetry.gas1 + rand(-3, 5),
+                                600,
+                                780,
+                            );
+                            state.telemetry.gas2 = clamp(
+                                state.telemetry.gas2 + rand(-0.3, 0.4),
+                                41,
+                                60,
+                            );
+                            state.telemetry.gas3 = clamp(
+                                state.telemetry.gas3 + rand(-0.015, 0.01),
+                                17.4,
+                                18.6,
+                            );
+                            state.telemetry.hum = clamp(
+                                state.telemetry.hum + rand(-0.1, 0.15),
+                                96.0,
+                                98.5,
+                            );
+                            els.gas1Val.textContent = fmt0(
+                                state.telemetry.gas1,
+                            );
+                            els.gas2Val.textContent = fmt1(
+                                state.telemetry.gas2,
+                            );
+                            els.gas3Val.textContent = fmt1(
+                                state.telemetry.gas3,
+                            );
+                            els.humVal.textContent = fmt1(state.telemetry.hum);
+                            els.gas1Bar.style.width =
+                                clamp(
+                                    (state.telemetry.gas1 / 1000) * 100,
+                                    0,
+                                    100,
+                                ) + "%";
+                            els.gas2Bar.style.width =
+                                clamp(state.telemetry.gas2, 0, 100) + "%";
+                            els.gas3Bar.style.width =
+                                clamp(
+                                    ((state.telemetry.gas3 - 15) / 10) * 100,
+                                    0,
+                                    100,
+                                ) + "%";
+                        }
+                    }
+                    updateHeaderStats();
+                }, 1000);
+
+                /* ───────────────────────────── INIT ────────────────────────────── */
+                function resizeCanvas() {
+                    const c = els.canvas;
+                    c.width = c.offsetWidth;
+                    c.height = c.offsetHeight;
+                    buildPointCloud(); // regenerate point cloud for new dimensions
+                    // MINER.x/y are now computed dynamically each frame from state.minerFrac
+                }
+
+                resizeCanvas();
+                window.addEventListener("resize", resizeCanvas);
+
+                addLog(
+                    "Canary Command Center v2.1 initialised successfully.",
+                    "success",
+                );
+                addLog(
+                    "Node 01 connected — RealSense D457 telemetry stream active.",
+                    "info",
+                );
+                addLog(
+                    "Point cloud loaded — Sector 7, Drift B, 142 m depth — 847 pts at 6.2 m range.",
+                    "info",
+                );
+                addLog(
+                    "Env baseline: Temp 32.8°C | RH 91.4% | CO 11 ppm | CH4 3.2% LEL | O₂ 20.6% vol.",
+                    "info",
+                );
+                addLog(
+                    "Node 01: All sensors nominal. Monitoring active. Ventilation confirmed.",
+                    "",
+                );
+
+                loop();
+            })();
+        </script>
+    </body>
+</html>
