@@ -58,31 +58,17 @@ while True:
         )
         _last_print = now
 
-    # Flash exactly 5 times per trigger "event" (rising edge).
-    # While flashing, we ignore further sensor state changes until the burst ends.
-    if triggered and not _last_triggered:
-        _flashing = True
-        _flashes_left = 5  # number of ON pulses
-        _flash_on = False
-        _last_toggle = now - flash_interval  # force immediate first toggle (ON)
-
-    if _flashing and now - _last_toggle >= flash_interval:
-        _flash_on = not _flash_on
-        if _flash_on:
-            led_matrix.fill_all()
-            _flashes_left -= 1
-        else:
-            led_matrix.clear()
-
-        _last_toggle = now
-
-        # Stop after the last ON pulse has been followed by its OFF.
-        if (not _flash_on) and _flashes_left == 0:
-            _flashing = False
-
-    # If we're not actively flashing, ensure the matrix is off when not triggered.
-    if (not _flashing) and (not triggered):
+    if triggered:
+        if now - _last_toggle >= flash_interval:
+            _flash_on = not _flash_on
+            if _flash_on:
+                led_matrix.fill_all()
+            else:
+                led_matrix.clear()
+            _last_toggle = now
+    elif _last_triggered:
         led_matrix.clear()
+        _flash_on = False
 
     _last_triggered = triggered
     time.sleep(0.05)
