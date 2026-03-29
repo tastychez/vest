@@ -33,10 +33,26 @@ REQUIRED_KEYS = [
     "matrix_mosi_pin",
     "matrix_cs_pin",
     "matrix_brightness",
+    "neopixel_pin",
+    "neopixel_count",
 ]
 
-# Subset of keys whose values must be non-empty strings (pin names)
-PIN_KEYS = [k for k in REQUIRED_KEYS if k != "matrix_brightness"]
+# Keys whose values must be non-empty strings (pin names)
+PIN_KEYS = [
+    "fc22_pin",
+    "flying_fish_pin",
+    "cnt5_pin",
+    "matrix_clk_pin",
+    "matrix_mosi_pin",
+    "matrix_cs_pin",
+    "neopixel_pin",
+]
+
+# Keys whose values must be integers
+INT_KEYS = [
+    "matrix_brightness",
+    "neopixel_count",
+]
 
 
 # ===========================================================================
@@ -71,9 +87,12 @@ class TestConfigJsonStructure:
         )
         assert value.strip() != "", f"{key!r} must not be blank"
 
-    def test_matrix_brightness_is_integer(self):
-        """Brightness must be stored as a JSON integer, not a float or string."""
-        assert isinstance(RAW_CONFIG["matrix_brightness"], int)
+    @pytest.mark.parametrize("key", INT_KEYS)
+    def test_int_value_is_integer(self, key):
+        """Integer config values must be stored as JSON integers."""
+        assert isinstance(RAW_CONFIG[key], int), (
+            f"{key!r} must be an int, got {type(RAW_CONFIG[key]).__name__}"
+        )
 
     def test_matrix_brightness_minimum_bound(self):
         """Brightness must be >= 0 (MAX7219 range: 0-15)."""
@@ -82,6 +101,10 @@ class TestConfigJsonStructure:
     def test_matrix_brightness_maximum_bound(self):
         """Brightness must be <= 15 (MAX7219 range: 0-15)."""
         assert RAW_CONFIG["matrix_brightness"] <= 15
+
+    def test_neopixel_count_at_least_one(self):
+        """neopixel_count must be >= 1 (at least one LED in the strip)."""
+        assert RAW_CONFIG["neopixel_count"] >= 1
 
     def test_no_unexpected_keys(self):
         """config.json should not contain keys outside the expected set."""
@@ -129,6 +152,12 @@ class TestConfigModuleExports:
     def test_matrix_brightness_matches_json(self):
         assert self.cfg.matrix_brightness == RAW_CONFIG["matrix_brightness"]
 
+    def test_neopixel_pin_matches_json(self):
+        assert self.cfg.neopixel_pin == RAW_CONFIG["neopixel_pin"]
+
+    def test_neopixel_count_matches_json(self):
+        assert self.cfg.neopixel_count == RAW_CONFIG["neopixel_count"]
+
     def test_all_pin_exports_are_strings(self):
         """Every pin export must resolve to a string at runtime."""
         for key in PIN_KEYS:
@@ -139,6 +168,9 @@ class TestConfigModuleExports:
 
     def test_brightness_export_is_int(self):
         assert isinstance(self.cfg.matrix_brightness, int)
+
+    def test_neopixel_count_export_is_int(self):
+        assert isinstance(self.cfg.neopixel_count, int)
 
 
 # ===========================================================================
@@ -163,40 +195,10 @@ class TestConfigEdgeCases:
 
     # ── Missing required key ────────────────────────────────────────────────
 
-    def test_missing_fc22_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "fc22_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_flying_fish_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "flying_fish_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_cnt5_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "cnt5_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_matrix_clk_pin_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "matrix_clk_pin"}
-        self._write_cfg(tmp_path, cfg)
-        monkeypatch.chdir(tmp_path)
-        sys.modules.pop("config", None)
-        with pytest.raises(KeyError):
-            importlib.import_module("config")
-
-    def test_missing_matrix_brightness_raises_key_error(self, tmp_path, monkeypatch):
-        cfg = {k: v for k, v in RAW_CONFIG.items() if k != "matrix_brightness"}
+    @pytest.mark.parametrize("missing_key", REQUIRED_KEYS)
+    def test_missing_key_raises_key_error(self, missing_key, tmp_path, monkeypatch):
+        """Removing any single required key must cause a KeyError on import."""
+        cfg = {k: v for k, v in RAW_CONFIG.items() if k != missing_key}
         self._write_cfg(tmp_path, cfg)
         monkeypatch.chdir(tmp_path)
         sys.modules.pop("config", None)
@@ -257,3 +259,12 @@ class TestConfigEdgeCases:
         sys.modules.pop("config", None)
         c = importlib.import_module("config")
         assert c.fc22_pin == 4
+
+    def test_neopixel_count_as_string_is_loaded_verbatim(self, tmp_path, monkeypatch):
+        """neopixel_count stored as a string is passed through unchanged."""
+        cfg = {**RAW_CONFIG, "neopixel_count": "three"}
+        self._write_cfg(tmp_path, cfg)
+        monkeypatch.chdir(tmp_path)
+        sys.modules.pop("config", None)
+        c = importlib.import_module("config")
+        assert c.neopixel_count == "three"

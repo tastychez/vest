@@ -5,5 +5,7 @@
   "matrix_clk_pin": "SCK",
   "matrix_mosi_pin": "MOSI",
   "matrix_cs_pin": "D5",
-  "matrix_brightness": 5
+  "matrix_brightness": 5,
+  "neopixel_pin": "D13",
+  "neopixel_count": 1
 }

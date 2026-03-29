@@ -32,7 +32,7 @@ os.chdir(ROOT)
 
 # board ── one distinct mock sentinel per pin used across the project ----------
 board = MagicMock(name="board")
-for _pin in ("D4", "D5", "D6", "D17", "SCK", "MOSI"):
+for _pin in ("D4", "D5", "D6", "D13", "D17", "SCK", "MOSI"):
     setattr(board, _pin, MagicMock(name=f"board.{_pin}"))
 
 # digitalio -------------------------------------------------------------------
@@ -42,6 +42,9 @@ digitalio.Direction.OUTPUT = "OUTPUT"
 
 # busio -----------------------------------------------------------------------
 busio = MagicMock(name="busio")
+
+# neopixel --------------------------------------------------------------------
+neopixel = MagicMock(name="neopixel")
 
 # adafruit_max7219 + adafruit_max7219.matrices --------------------------------
 matrices = MagicMock(name="adafruit_max7219.matrices")
@@ -54,5 +57,6 @@ adafruit_max7219.matrices = matrices  # `from adafruit_max7219 import matrices`
 sys.modules["board"] = board
 sys.modules["digitalio"] = digitalio
 sys.modules["busio"] = busio
+sys.modules["neopixel"] = neopixel
 sys.modules["adafruit_max7219"] = adafruit_max7219
 sys.modules["adafruit_max7219.matrices"] = matrices
