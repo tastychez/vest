@@ -761,6 +761,179 @@
                     transform: translateX(0);
                 }
             }
+            @keyframes slider-in {
+                from { opacity: 0; transform: translateY(14px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
+
+            /* ── AI Prediction Timeline ── */
+            .ai-timeline {
+                position: absolute;
+                bottom: 14px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: min(520px, calc(100% - 48px));
+                background: rgba(13,17,23,0.92);
+                border: 1px solid rgba(255,170,0,0.28);
+                border-radius: 10px;
+                padding: 10px 18px 12px;
+                display: none;
+                flex-direction: column;
+                gap: 6px;
+                z-index: 20;
+                backdrop-filter: blur(8px);
+                box-shadow: 0 4px 32px rgba(255,140,0,0.10), 0 0 1px rgba(255,170,0,0.3);
+            }
+            .ai-timeline.visible {
+                display: flex;
+                animation: slider-in 0.45s ease-out;
+            }
+            .ai-timeline-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .ai-timeline-title {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: #ffaa00;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .ai-timeline-title::before {
+                content: "";
+                width: 7px; height: 7px;
+                border-radius: 50%;
+                background: #ffaa00;
+                box-shadow: 0 0 8px #ffaa00;
+                animation: blink 1.4s infinite;
+            }
+            .ai-timeline-readout {
+                font-family: var(--font-mono);
+                font-size: 11px;
+                color: #ffcc44;
+                letter-spacing: 0.04em;
+            }
+            .ai-timeline-track {
+                position: relative;
+                height: 28px;
+                display: flex;
+                align-items: center;
+            }
+            .ai-timeline input[type="range"] {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 4px;
+                border-radius: 2px;
+                background: linear-gradient(90deg, #ff1744 0%, #ffaa00 35%, #ffcc44 100%);
+                outline: none;
+                cursor: pointer;
+            }
+            .ai-timeline input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 16px; height: 16px;
+                border-radius: 50%;
+                background: #ffcc44;
+                border: 2px solid #0d1117;
+                box-shadow: 0 0 10px rgba(255,170,0,0.5);
+                cursor: grab;
+            }
+            .ai-timeline input[type="range"]::-moz-range-thumb {
+                width: 16px; height: 16px;
+                border-radius: 50%;
+                background: #ffcc44;
+                border: 2px solid #0d1117;
+                box-shadow: 0 0 10px rgba(255,170,0,0.5);
+                cursor: grab;
+            }
+            .ai-timeline-ticks {
+                display: flex;
+                justify-content: space-between;
+                padding: 0 2px;
+            }
+            .ai-timeline-ticks span {
+                font-size: 8.5px;
+                letter-spacing: 0.06em;
+                color: var(--text-muted);
+                font-family: var(--font-mono);
+            }
+            .ai-timeline-ticks span:first-child {
+                color: #ff1744;
+                font-weight: 700;
+            }
+
+            /* ── AI Action Buttons (overlay on center panel) ── */
+            .ai-action-btn {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 25;
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .ai-action-btn.visible { display: flex; }
+            .ai-action-btn button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                padding: 14px 32px;
+                transition: transform 0.15s, box-shadow 0.15s;
+            }
+            .ai-action-btn button:hover {
+                transform: translate(0, -1px);
+            }
+            .ai-action-btn button:active {
+                transform: translate(0, 1px);
+            }
+            .btn-run-ai {
+                background: linear-gradient(135deg, #ffaa00, #ff8800);
+                color: #0d1117;
+                box-shadow: 0 0 24px rgba(255,170,0,0.3), 0 4px 16px rgba(0,0,0,0.4);
+            }
+            .btn-run-ai:hover {
+                box-shadow: 0 0 36px rgba(255,170,0,0.45), 0 6px 20px rgba(0,0,0,0.5);
+            }
+            .btn-run-ai .btn-sub {
+                display: block;
+                font-size: 9px;
+                font-weight: 400;
+                letter-spacing: 0.06em;
+                opacity: 0.7;
+                margin-top: 3px;
+                text-transform: none;
+            }
+            .btn-reset {
+                background: rgba(255,255,255,0.06);
+                color: var(--text-secondary);
+                border: 1px solid var(--border-bright) !important;
+                padding: 9px 22px;
+                font-size: 10px;
+                box-shadow: none;
+            }
+            .btn-reset:hover {
+                background: rgba(255,255,255,0.1);
+                color: var(--text-primary);
+            }
+
+            @keyframes btn-appear {
+                from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            }
+            .ai-action-btn.visible {
+                animation: btn-appear 0.5s ease-out;
+            }
         </style>
     </head>
     <body>
@@ -1083,7 +1256,18 @@
                                     class="legend-dot"
                                     style="background: rgba(255, 23, 68, 0.78)"
                                 ></div>
-                                Gas Plume
+                                Detected Gas
+                            </div>
+                            <div
+                                class="legend-item"
+                                id="legend-ai"
+                                style="display: none"
+                            >
+                                <div
+                                    class="legend-dot"
+                                    style="background: rgba(255,170,0,0.7); box-shadow: 0 0 5px rgba(255,170,0,0.4);"
+                                ></div>
+                                AI Predicted Spread
                             </div>
                             <div class="legend-item">
                                 <div
@@ -1103,6 +1287,36 @@
                                     "
                                 ></div>
                                 Rail Track
+                            </div>
+                        </div>
+                        <!-- AI Action Buttons -->
+                        <div class="ai-action-btn" id="ai-action-btn">
+                            <button class="btn-run-ai" id="btn-run-ai">
+                                Run AI Simulation
+                                <span class="btn-sub">Gas spread extrapolation · T+0 to T+60 min</span>
+                            </button>
+                        </div>
+
+                        <!-- AI Prediction Timeline Slider -->
+                        <div class="ai-timeline" id="ai-timeline">
+                            <div class="ai-timeline-header">
+                                <div class="ai-timeline-title">AI Gas Spread Extrapolation</div>
+                                <div class="ai-timeline-readout" id="ai-readout">T+0 min · NOW</div>
+                            </div>
+                            <div class="ai-timeline-track">
+                                <input type="range" id="ai-slider" min="0" max="60" value="0" step="1" />
+                            </div>
+                            <div class="ai-timeline-ticks">
+                                <span>NOW</span>
+                                <span>T+10m</span>
+                                <span>T+20m</span>
+                                <span>T+30m</span>
+                                <span>T+40m</span>
+                                <span>T+50m</span>
+                                <span>T+60m</span>
+                            </div>
+                            <div style="display:flex;justify-content:center;margin-top:4px;">
+                                <button class="btn-reset" id="btn-reset-sim">Reset &amp; Replay Incident</button>
                             </div>
                         </div>
                     </div>
@@ -1133,13 +1347,15 @@
                 /* ───────────────────────────── STATE ──────────────────────────── */
                 const state = {
                     emergency: false,
-                    animating: false, // true while animateTelemetry RAF is running
-                    minerFrac: 0, // 0 = entrance, 0.42 = trigger point
-                    minerDir: 1, // +1 = walking into drift, -1 = escaping out
-                    autoTriggered: false, // prevents double-triggering same cycle
-                    escapeTimeout: null, // handle for the direction-flip setTimeout
-                    cloudOrigin: { x: 0, y: 0 }, // gas cloud anchored at detection point
+                    animating: false,
+                    minerFrac: 0,
+                    minerDir: 1,
+                    autoTriggered: false,
+                    escapeTimeout: null,
+                    cloudOrigin: { x: 0, y: 0 },
                     gasCloud: { radius: 0, maxRadius: 0, expanding: false },
+                    cycleComplete: false,
+                    aiSimActive: false,
                     startTime: Date.now(),
                     logCount: 0,
                     telemetry: {
@@ -1180,9 +1396,33 @@
                     logCount: $("log-count"),
                     alertBanner: $("alert-banner"),
                     legendCloud: $("legend-cloud"),
+                    legendAI: $("legend-ai"),
+                    aiTimeline: $("ai-timeline"),
+                    aiSlider: $("ai-slider"),
+                    aiReadout: $("ai-readout"),
+                    aiActionBtn: $("ai-action-btn"),
+                    btnRunAI: $("btn-run-ai"),
+                    btnResetSim: $("btn-reset-sim"),
                     canvas: $("tunnel-canvas"),
                 };
                 const ctx = els.canvas.getContext("2d");
+
+                /* ─── AI prediction state (independent from emergency cloud) ─── */
+                const aiState = {
+                    tMinutes: 0,
+                    baseRadius: 0,
+                    originX: 0,
+                    originY: 0,
+                };
+
+                /* ─── AI slider interaction ─── */
+                els.aiSlider.addEventListener("input", () => {
+                    const v = parseInt(els.aiSlider.value, 10);
+                    aiState.tMinutes = v;
+                    els.aiReadout.textContent = v === 0
+                        ? "T+0 min · NOW"
+                        : `T+${v} min · Predicted`;
+                });
 
                 /* ───────────────────────────── HELPERS ─────────────────────────── */
                 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -1712,6 +1952,99 @@
                     ctx.restore();
                 }
 
+                /* ─── AI predicted gas cloud — fills tunnel cross-section along depth ── */
+                function drawPredictedCloud(W, H, tMinutes) {
+                    if (tMinutes < 1) return;
+                    const spread = clamp(tMinutes / 60, 0, 1) * 0.52;
+                    const fMin = clamp(TRIGGER_FRAC - spread, 0.02, TRIGGER_FRAC);
+                    const fMax = clamp(TRIGGER_FRAC + spread, TRIGGER_FRAC, 0.93);
+                    const seed = Math.floor(Date.now() / 150);
+                    const steps = 28;
+
+                    for (let i = 0; i <= steps; i++) {
+                        const f = fMin + (fMax - fMin) * (i / steps);
+                        const { cx, cy, hw, hh, fh } = tAt(f, W, H);
+
+                        const distFromCenter = Math.abs(f - TRIGGER_FRAC) / spread;
+                        const alphaFalloff = 1 - distFromCenter * distFromCenter;
+                        const wobble = Math.sin(seed * 0.04 + i * 0.9) * 0.04;
+                        const baseAlpha = (0.13 + wobble) * alphaFalloff;
+                        if (baseAlpha < 0.005) continue;
+
+                        const legTopY = cy - hh * 0.52;
+                        const archApexY = cy - hh * 1.06;
+                        const floorY = cy + fh;
+
+                        ctx.save();
+                        ctx.fillStyle = `rgba(255,150,0,${baseAlpha.toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - hw, floorY);
+                        ctx.lineTo(cx - hw, legTopY);
+                        ctx.bezierCurveTo(
+                            cx - hw * 0.26, archApexY,
+                            cx + hw * 0.26, archApexY,
+                            cx + hw, legTopY,
+                        );
+                        ctx.lineTo(cx + hw, floorY);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    // Leading-edge dashed outlines at the two frontier slices
+                    [fMin, fMax].forEach((edgeF) => {
+                        if (edgeF <= 0.02 || edgeF >= 0.93) return;
+                        const { cx, cy, hw, hh, fh } = tAt(edgeF, W, H);
+                        const legTopY = cy - hh * 0.52;
+                        const archApexY = cy - hh * 1.06;
+                        const floorY = cy + fh;
+
+                        ctx.save();
+                        ctx.strokeStyle = "rgba(255,170,0,0.35)";
+                        ctx.lineWidth = lerp(1.4, 0.5, edgeF);
+                        ctx.setLineDash([5, 7]);
+                        ctx.lineDashOffset = Date.now() / 55;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - hw, floorY);
+                        ctx.lineTo(cx - hw, legTopY);
+                        ctx.bezierCurveTo(
+                            cx - hw * 0.26, archApexY,
+                            cx + hw * 0.26, archApexY,
+                            cx + hw, legTopY,
+                        );
+                        ctx.lineTo(cx + hw, floorY);
+                        ctx.closePath();
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.restore();
+                    });
+
+                    // Turbulent particle blobs inside the gas volume
+                    const rng = makePRNG(0xA100 + seed);
+                    for (let i = 0; i < 40; i++) {
+                        const pf = fMin + rng() * (fMax - fMin);
+                        const { cx, cy, hw, hh, fh } = tAt(pf, W, H);
+                        const px = cx + (rng() - 0.5) * hw * 1.6;
+                        const py = cy - hh * rng() * 0.8 + fh * rng() * 0.5;
+                        const pr = lerp(3.5, 1, pf) + Math.sin(seed * 0.3 + i) * 1.5;
+                        const distFromCenter = Math.abs(pf - TRIGGER_FRAC) / Math.max(spread, 0.01);
+                        const pa = 0.12 * (1 - distFromCenter);
+                        if (pa < 0.01) continue;
+                        ctx.fillStyle = `rgba(255,170,0,${pa.toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(px, py, Math.max(0.5, pr), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Label at the far edge
+                    const farPt = tAt(fMax, W, H);
+                    ctx.save();
+                    ctx.fillStyle = "rgba(255,170,0,0.7)";
+                    ctx.font = 'bold 10px "Courier New"';
+                    ctx.fillText(`AI T+${tMinutes}m`, farPt.cx + farPt.hw + 8, farPt.cy);
+                    ctx.restore();
+                }
+
                 /* ─── Miner node dot ───────────────────────────────────────────── */
                 const MINER = { x: 0, y: 0 };
 
@@ -1838,14 +2171,22 @@
                     drawRockBolts(W, H);
                     // 9. LiDAR sweep line
                     drawScanLine(W, H, t);
-                    // 10. Gas cloud — anchored at the detection origin, not the moving miner
-                    if (state.gasCloud.radius > 1)
+                    // 10. AI sim mode — own cloud rendering, independent of emergency
+                    if (state.aiSimActive) {
+                        if (aiState.tMinutes > 0) {
+                            drawPredictedCloud(W, H, aiState.tMinutes);
+                        }
+                        drawGasCloud(aiState.originX, aiState.originY, aiState.baseRadius);
+                    }
+                    // 11. Emergency detected gas cloud (during live incident only)
+                    else if (state.gasCloud.radius > 1) {
                         drawGasCloud(
                             state.cloudOrigin.x,
                             state.cloudOrigin.y,
                             state.gasCloud.radius,
                         );
-                    // 11. Secondary nodes deeper in drift
+                    }
+                    // 12. Secondary nodes deeper in drift
                     drawDimNode(W * 0.43, H * 0.46, t, "Node 02");
                     drawDimNode(W * 0.51, H * 0.4, t, "Node 03");
                     drawDimNode(W * 0.5, H * 0.35, t, "Node 04");
@@ -1856,47 +2197,44 @@
                 }
 
                 /* ───────────────────────────── ANIMATION LOOP ──────────────────── */
+                const TRIGGER_FRAC = 0.42;
+
                 function loop() {
-                    // ── Automated narrative: walk in → spike → escape → reset → repeat ──
-                    const TRIGGER_FRAC = 0.42; // depth at which gas auto-triggers
-                    if (state.minerDir === 1) {
-                        state.minerFrac += 0.00117; // walk in (~6 s to trigger point at 60 fps)
-                        state.minerFrac = Math.min(
-                            state.minerFrac,
-                            TRIGGER_FRAC + 0.05,
-                        ); // soft cap
-                        if (
-                            state.minerFrac >= TRIGGER_FRAC &&
-                            !state.emergency &&
-                            !state.autoTriggered
-                        ) {
-                            state.autoTriggered = true;
-                            triggerEmergency();
-                        }
-                    } else {
-                        state.minerFrac -= 0.00095; // measured escape (~7.5 s cap-to-exit at 60 fps)
-                        // Recovery fires the moment miner crosses back over the danger boundary —
-                        // the same line that triggered the alarm going in
-                        if (state.minerFrac < TRIGGER_FRAC && state.emergency) {
-                            resetEmergency();
-                        }
-                        if (state.minerFrac <= 0) {
-                            state.minerFrac = 0;
-                            state.minerDir = 1;
-                            state.autoTriggered = false;
-                            if (state.emergency) resetEmergency(); // safety fallback
+                    if (!state.cycleComplete && !state.aiSimActive) {
+                        if (state.minerDir === 1) {
+                            state.minerFrac += 0.00117;
+                            state.minerFrac = Math.min(state.minerFrac, TRIGGER_FRAC + 0.05);
+                            if (
+                                state.minerFrac >= TRIGGER_FRAC &&
+                                !state.emergency &&
+                                !state.autoTriggered
+                            ) {
+                                state.autoTriggered = true;
+                                triggerEmergency();
+                            }
+                        } else {
+                            state.minerFrac -= 0.00095;
+                            if (state.minerFrac < TRIGGER_FRAC && state.emergency) {
+                                resetEmergency();
+                            }
+                            if (state.minerFrac <= 0) {
+                                state.minerFrac = 0;
+                                if (state.emergency) resetEmergency();
+                                state.cycleComplete = true;
+                                state.minerDir = 1;
+                                state.autoTriggered = false;
+                                showAIButton();
+                            }
                         }
                     }
 
-                    // Gas cloud expansion
                     if (
                         state.gasCloud.expanding &&
                         state.gasCloud.radius < state.gasCloud.maxRadius
                     ) {
                         state.gasCloud.radius = Math.min(
                             state.gasCloud.maxRadius,
-                            state.gasCloud.radius +
-                                state.gasCloud.maxRadius * 0.02,
+                            state.gasCloud.radius + state.gasCloud.maxRadius * 0.02,
                         );
                     }
                     drawScene();
@@ -2099,6 +2437,14 @@
                             ),
                         3800,
                     );
+                    setTimeout(
+                        () =>
+                            addLog(
+                                "AI extrapolation engine online — Tunnel topology + ventilation model loaded. Use timeline to project spread.",
+                                "info",
+                            ),
+                        4400,
+                    );
 
                     // After miner registers the alarm, he turns and flees
                     // Recovery is NOT time-based — it fires when he physically crosses back over the
@@ -2196,15 +2542,101 @@
                     );
                 }
 
+                /* ───────────────────────────── AI SIM CONTROLS ─────────────────── */
+                function showAIButton() {
+                    addLog("Incident cycle complete. AI extrapolation available.", "info");
+                    els.aiActionBtn.classList.add("visible");
+                }
+
+                function startAISim() {
+                    els.aiActionBtn.classList.remove("visible");
+                    state.aiSimActive = true;
+                    aiState.tMinutes = 0;
+                    els.aiSlider.value = 0;
+                    els.aiReadout.textContent = "T+0 min · NOW";
+
+                    const c = els.canvas, W = c.width, H = c.height;
+                    const trigPt = tAt(TRIGGER_FRAC, W, H);
+                    aiState.originX = trigPt.cx;
+                    aiState.originY = trigPt.cy + trigPt.fh * 0.38;
+                    aiState.baseRadius = Math.min(W, H) * 0.32;
+
+                    els.legendCloud.style.display = "flex";
+                    els.legendAI.style.display = "flex";
+                    els.aiTimeline.classList.add("visible");
+
+                    addLog("AI Gas Spread Extrapolation engine active. Drag timeline to project spread.", "info");
+                    addLog("Model: Tunnel topology + ventilation flow (4.2 m³/s) + CH₄ diffusion coefficient.", "info");
+                }
+
+                function resetAll() {
+                    // Clear any lingering emergency state
+                    state.emergency = false;
+                    state.animating = false;
+                    if (state.escapeTimeout) { clearTimeout(state.escapeTimeout); state.escapeTimeout = null; }
+                    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+
+                    // Reset miner cycle
+                    state.aiSimActive = false;
+                    state.cycleComplete = false;
+                    state.minerFrac = 0;
+                    state.minerDir = 1;
+                    state.autoTriggered = false;
+                    state.gasCloud.radius = 0;
+                    state.gasCloud.maxRadius = 0;
+                    state.gasCloud.expanding = false;
+
+                    // Reset AI state
+                    aiState.tMinutes = 0;
+                    aiState.baseRadius = 0;
+
+                    // Reset all UI
+                    els.aiActionBtn.classList.remove("visible");
+                    els.aiTimeline.classList.remove("visible");
+                    els.legendCloud.style.display = "none";
+                    els.legendAI.style.display = "none";
+                    els.alertBanner.style.display = "none";
+
+                    [els.gas1Card, els.gas2Card].forEach((el) => el.classList.remove("critical"));
+                    [els.gas1Val, els.gas2Val].forEach((el) => el.classList.remove("critical"));
+                    [els.gas1Bar, els.gas2Bar].forEach((el) => el.classList.remove("critical"));
+                    els.gas1Badge.textContent = "SAFE"; els.gas1Badge.classList.remove("critical");
+                    els.gas2Badge.textContent = "SAFE"; els.gas2Badge.classList.remove("critical");
+                    els.gas3Card.classList.remove("deficient");
+                    els.gas3Val.classList.remove("deficient");
+                    els.gas3Bar.classList.remove("deficient");
+                    els.gas3Badge.textContent = "NOMINAL"; els.gas3Badge.classList.remove("deficient");
+                    els.statusDot.classList.remove("emergency");
+                    els.statusText.classList.remove("emergency");
+                    els.statusText.textContent = "System Online — Telemetry Active";
+                    els.statusPill.style.background = "";
+                    els.statusPill.style.borderColor = "";
+
+                    // Reset telemetry to nominal
+                    state.telemetry.temp = 32.8;
+                    state.telemetry.hum = 91.4;
+                    state.telemetry.gas1 = 11;
+                    state.telemetry.gas2 = 3.2;
+                    state.telemetry.gas3 = 20.9 * (1 - 3.2 * 0.0005);
+                    renderTelemetry();
+
+                    addLog("System reset. Replaying incident monitoring cycle.", "success");
+                }
+
+                els.btnRunAI.addEventListener("click", startAISim);
+                els.btnResetSim.addEventListener("click", resetAll);
+
                 /* ───────────────────────────── KEYBOARD ───────────────────────── */
                 document.addEventListener("keydown", (e) => {
                     if (e.key === "Enter") {
                         e.preventDefault();
-                        triggerEmergency();
+                        if (state.cycleComplete && !state.aiSimActive) startAISim();
+                        else if (!state.cycleComplete) triggerEmergency();
                     }
                     if (e.key === "Escape") {
                         e.preventDefault();
-                        resetEmergency();
+                        if (state.aiSimActive) resetAll();
+                        else resetEmergency();
                     }
                 });
 
