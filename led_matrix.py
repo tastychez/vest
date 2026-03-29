@@ -45,6 +45,12 @@ def clear():
     matrix.show()
 
 
+def fill_all():
+    """Turn on every LED in the matrix (danger / alert state)."""
+    matrix.fill(1)
+    matrix.show()
+
+
 def set_brightness(level):
     """
     Change display brightness at runtime.

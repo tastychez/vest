@@ -16,7 +16,3 @@ matrix_cs_pin = _config["matrix_cs_pin"]
 
 # MAX7219 brightness (0 = dimmest, 15 = brightest)
 matrix_brightness = _config["matrix_brightness"]
-
-# NeoPixel status LED
-neopixel_pin = _config["neopixel_pin"]
-neopixel_count = _config["neopixel_count"]
