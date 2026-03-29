@@ -1177,7 +1177,7 @@
                             <span class="bar-label">25%</span>
                         </div>
                         <div style="margin-top:6px;font-size:9px;letter-spacing:0.04em;color:var(--text-muted);line-height:1.45;">
-                            Inferred via CH₄ displacement model · O₂ = 20.9% × (1 − CH₄<sub>vol</sub>)
+                            Multi-sensor fusion · O₂ = 20.9%(1 − CH₄<sub>vol</sub>) − CO<sub>ppm</sub> × k
                         </div>
                     </div>
                 </div>
@@ -1364,7 +1364,7 @@
                         hum: 91.4, // %RH – underground mines are 85–98% RH due to groundwater
                         gas1: 11, // CO  ppm  – diesel background; OSHA PEL = 50 ppm, IDLH = 1200 ppm
                         gas2: 3.2, // CH4 % LEL – LEL of methane = 5 % vol = 50 000 ppm; MSHA alarm = 40 % LEL
-                        gas3: 20.9 * (1 - 3.2 * 0.0005), // O2 derived: 20.9% × (1 − CH4_vol_frac)
+                        gas3: 0, // O2 — derived at init from deriveO2()
                     },
                 };
 
@@ -1479,6 +1479,14 @@
                 }
 
                 /* ───────────────────────────── TELEMETRY ───────────────────────── */
+                // Multi-sensor O2 derivation: CH4 displacement + CO combustion sink
+                // CO is a marker of incomplete CH4 combustion (CH4 + 1.5O2 → CO + 2H2O),
+                // so elevated CO implies upstream oxidation that consumed significant O2.
+                function deriveO2(ch4Lel, coPpm) {
+                    const ch4Vol = ch4Lel * 0.0005;
+                    return clamp(20.9 * (1 - ch4Vol) - coPpm * 0.0036, 0, 20.9);
+                }
+
                 function fluctuate() {
                     if (state.emergency) return;
                     const t = state.telemetry;
@@ -1490,8 +1498,7 @@
                     t.gas1 = clamp(t.gas1 + rand(-0.8, 0.8), 4.0, 18.0);
                     // CH4 %LEL: very low and stable in normal ventilated conditions
                     t.gas2 = clamp(t.gas2 + rand(-0.15, 0.15), 1.0, 5.5);
-                    // O2 derived from CH4 displacement: O2 = 20.9% × (1 − CH4_vol)
-                    t.gas3 = 20.9 * (1 - t.gas2 * 0.0005);
+                    t.gas3 = deriveO2(t.gas2, t.gas1);
                     renderTelemetry();
                 }
 
@@ -2319,11 +2326,12 @@
                     state.emergency = true;
 
                     // Define emergency target values
+                    const emergCO = 640 + rand(0, 110);
                     const emergCH4 = 44 + rand(0, 12);
                     const targets = {
-                        gas1: 640 + rand(0, 110), // CO ppm
-                        gas2: emergCH4, // CH4 %LEL
-                        gas3: 20.9 * (1 - emergCH4 * 0.0005), // O2 derived from CH4
+                        gas1: emergCO,
+                        gas2: emergCH4,
+                        gas3: deriveO2(emergCH4, emergCO),
                         temp: clamp(
                             state.telemetry.temp + 2.2 + rand(0, 0.8),
                             33.5,
@@ -2470,11 +2478,12 @@
                     state.minerDir = -1; // always walk back toward exit after a reset
 
                     // Define safe recovery targets
+                    const safeCO = rand(7, 16);
                     const safeCH4 = rand(1.5, 4.5);
                     const targets = {
-                        gas1: rand(7, 16),
+                        gas1: safeCO,
                         gas2: safeCH4,
-                        gas3: 20.9 * (1 - safeCH4 * 0.0005),
+                        gas3: deriveO2(safeCH4, safeCO),
                         temp: rand(32.0, 33.5),
                         hum: rand(89.0, 93.0),
                     };
@@ -2617,7 +2626,7 @@
                     state.telemetry.hum = 91.4;
                     state.telemetry.gas1 = 11;
                     state.telemetry.gas2 = 3.2;
-                    state.telemetry.gas3 = 20.9 * (1 - 3.2 * 0.0005);
+                    state.telemetry.gas3 = deriveO2(3.2, 11);
                     renderTelemetry();
 
                     addLog("System reset. Replaying incident monitoring cycle.", "success");
@@ -2674,8 +2683,8 @@
                                 41,
                                 60,
                             );
-                            state.telemetry.gas3 =
-                                20.9 * (1 - state.telemetry.gas2 * 0.0005);
+                            state.telemetry.gas3 = deriveO2(
+                                state.telemetry.gas2, state.telemetry.gas1);
                             state.telemetry.hum = clamp(
                                 state.telemetry.hum + rand(-0.1, 0.15),
                                 96.0,
@@ -2719,6 +2728,7 @@
                     // MINER.x/y are now computed dynamically each frame from state.minerFrac
                 }
 
+                state.telemetry.gas3 = deriveO2(state.telemetry.gas2, state.telemetry.gas1);
                 resizeCanvas();
                 window.addEventListener("resize", resizeCanvas);
 
