@@ -977,11 +977,11 @@
                         </div>
                     </div>
 
-                    <!-- Gas 3: O2 (% vol) — normal 20.9%; safe 19.5–23.5%; deficient <19.5% -->
+                    <!-- Gas 3: O2 (% vol) — derived estimate from CH4 displacement model -->
                     <div class="gas-card" id="gas3-card">
                         <div class="gas-card-header">
                             <span class="gas-name"
-                                >Gas 3 · Oxygen O₂ Level</span
+                                >Derived O₂ Estimate</span
                             >
                             <span class="gas-badge" id="gas3-badge"
                                 >NOMINAL</span
@@ -989,7 +989,7 @@
                         </div>
                         <div class="gas-value-row">
                             <span class="gas-value" id="gas3-val">20.6</span>
-                            <span class="gas-unit">% vol</span>
+                            <span class="gas-unit">% vol · Est.</span>
                         </div>
                         <div class="bar-track">
                             <div
@@ -1002,6 +1002,9 @@
                             <span class="bar-label">15%</span>
                             <span class="bar-label">SAFE: 19.5 – 23.5%</span>
                             <span class="bar-label">25%</span>
+                        </div>
+                        <div style="margin-top:6px;font-size:9px;letter-spacing:0.04em;color:var(--text-muted);line-height:1.45;">
+                            Inferred via CH₄ displacement model · O₂ = 20.9% × (1 − CH₄<sub>vol</sub>)
                         </div>
                     </div>
                 </div>
@@ -1145,7 +1148,7 @@
                         hum: 91.4, // %RH – underground mines are 85–98% RH due to groundwater
                         gas1: 11, // CO  ppm  – diesel background; OSHA PEL = 50 ppm, IDLH = 1200 ppm
                         gas2: 3.2, // CH4 % LEL – LEL of methane = 5 % vol = 50 000 ppm; MSHA alarm = 40 % LEL
-                        gas3: 20.6, // O2  % vol – atmospheric is 20.9%; safe range 19.5–23.5%
+                        gas3: 20.9 * (1 - 3.2 * 0.0005), // O2 derived: 20.9% × (1 − CH4_vol_frac)
                     },
                 };
 
@@ -1247,8 +1250,8 @@
                     t.gas1 = clamp(t.gas1 + rand(-0.8, 0.8), 4.0, 18.0);
                     // CH4 %LEL: very low and stable in normal ventilated conditions
                     t.gas2 = clamp(t.gas2 + rand(-0.15, 0.15), 1.0, 5.5);
-                    // O2: extremely stable in nominal conditions
-                    t.gas3 = clamp(t.gas3 + rand(-0.02, 0.02), 20.3, 20.8);
+                    // O2 derived from CH4 displacement: O2 = 20.9% × (1 − CH4_vol)
+                    t.gas3 = 20.9 * (1 - t.gas2 * 0.0005);
                     renderTelemetry();
                 }
 
@@ -1436,18 +1439,9 @@
                 }
 
                 function drawPointCloud() {
-                    // Colour each point by its 2-D distance from the miner's current position
-                    // near the miner = warm red/orange, far away = cool cyan/blue
-                    const maxDist =
-                        Math.max(els.canvas.width, els.canvas.height) * 0.55;
+                    const mf = state.minerFrac;
                     ptCloud.forEach((p) => {
-                        const dx = p.x - MINER.x;
-                        const dy = p.y - MINER.y;
-                        const distNorm = clamp(
-                            Math.sqrt(dx * dx + dy * dy) / maxDist,
-                            0,
-                            1,
-                        );
+                        const distNorm = clamp(Math.abs(p.d - mf) / 0.45, 0, 1);
                         ctx.fillStyle = depthRGBA(distNorm, p.a);
                         ctx.beginPath();
                         ctx.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
@@ -1987,10 +1981,11 @@
                     state.emergency = true;
 
                     // Define emergency target values
+                    const emergCH4 = 44 + rand(0, 12);
                     const targets = {
                         gas1: 640 + rand(0, 110), // CO ppm
-                        gas2: 44 + rand(0, 12), // CH4 %LEL
-                        gas3: 18.2 - rand(0, 0.5), // O2 %vol (drops)
+                        gas2: emergCH4, // CH4 %LEL
+                        gas3: 20.9 * (1 - emergCH4 * 0.0005), // O2 derived from CH4
                         temp: clamp(
                             state.telemetry.temp + 2.2 + rand(0, 0.8),
                             33.5,
@@ -2039,7 +2034,7 @@
                     // accumulating gas, not a sudden spike
                     animateTelemetry(
                         targets,
-                        4000,
+                        2000,
                         (t) => 1 - Math.cos((t * Math.PI) / 2),
                     );
 
@@ -2129,10 +2124,11 @@
                     state.minerDir = -1; // always walk back toward exit after a reset
 
                     // Define safe recovery targets
+                    const safeCH4 = rand(1.5, 4.5);
                     const targets = {
                         gas1: rand(7, 16),
-                        gas2: rand(1.5, 4.5),
-                        gas3: rand(20.4, 20.7),
+                        gas2: safeCH4,
+                        gas3: 20.9 * (1 - safeCH4 * 0.0005),
                         temp: rand(32.0, 33.5),
                         hum: rand(89.0, 93.0),
                     };
@@ -2246,11 +2242,8 @@
                                 41,
                                 60,
                             );
-                            state.telemetry.gas3 = clamp(
-                                state.telemetry.gas3 + rand(-0.015, 0.01),
-                                17.4,
-                                18.6,
-                            );
+                            state.telemetry.gas3 =
+                                20.9 * (1 - state.telemetry.gas2 * 0.0005);
                             state.telemetry.hum = clamp(
                                 state.telemetry.hum + rand(-0.1, 0.15),
                                 96.0,
