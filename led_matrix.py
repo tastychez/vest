@@ -1,3 +1,5 @@
+import atexit
+
 import board
 import busio
 import digitalio
@@ -26,6 +28,34 @@ matrix.fill(0)  # clear display on startup
 matrix.show()
 
 
+# --- Cleanup ----------------------------------------------------------------
+# Registered with atexit so the SPI bus and CS GPIO are always released when
+# the process exits normally (including Ctrl+C / KeyboardInterrupt).
+# This prevents the lgpio "GPIO busy" error on the next run.
+
+
+def _cleanup():
+    try:
+        matrix.fill(0)
+        matrix.show()
+    except Exception:
+        pass
+    try:
+        cs.deinit()
+    except Exception:
+        pass
+    try:
+        spi.deinit()
+    except Exception:
+        pass
+
+
+atexit.register(_cleanup)
+
+
+# --- Public API -------------------------------------------------------------
+
+
 def display_text(text, x=0, y=0):
     """Render a short string on the matrix at position (x, y)."""
     matrix.fill(0)
@@ -39,15 +69,15 @@ def display_pixel(x, y, on=True):
     matrix.show()
 
 
-def clear():
-    """Turn off all LEDs."""
-    matrix.fill(0)
-    matrix.show()
-
-
 def fill_all():
     """Turn on every LED in the matrix (danger / alert state)."""
     matrix.fill(1)
+    matrix.show()
+
+
+def clear():
+    """Turn off all LEDs."""
+    matrix.fill(0)
     matrix.show()
 
 

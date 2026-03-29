@@ -64,7 +64,11 @@ class TestFC22Initialisation:
 
     def test_correct_board_pin_used(self, fc22_mod):
         """DigitalInOut must receive board.D4 (the pin named in config.json)."""
-        mock_digitalio.DigitalInOut.assert_called_once_with(mock_board.D4)
+        import config
+
+        mock_digitalio.DigitalInOut.assert_called_once_with(
+            getattr(mock_board, config.fc22_pin)
+        )
 
     def test_wrong_pin_not_used(self, fc22_mod):
         """Sanity-check: board.D2 (the old hard-coded pin) must NOT be used."""

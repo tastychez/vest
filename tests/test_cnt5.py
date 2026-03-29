@@ -70,7 +70,11 @@ class TestCNT5Initialisation:
         DigitalInOut must receive the pin object that corresponds to the
         'cnt5_pin' key in config.json (default: 'D6' → board.D6).
         """
-        mock_digitalio.DigitalInOut.assert_called_once_with(mock_board.D6)
+        import config
+
+        mock_digitalio.DigitalInOut.assert_called_once_with(
+            getattr(mock_board, config.cnt5_pin)
+        )
 
     def test_direction_set_to_input(self, cnt5_mod):
         """

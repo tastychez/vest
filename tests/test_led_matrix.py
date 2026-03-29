@@ -81,10 +81,18 @@ class TestSPIInit:
     """busio.SPI is constructed with the pins declared in config.json."""
 
     def test_spi_clock_pin_is_sck(self):
-        assert _INIT["spi_kwargs"]["clock"] is mock_board.SCK
+        import config
+
+        assert _INIT["spi_kwargs"]["clock"] is getattr(
+            mock_board, config.matrix_clk_pin
+        )
 
     def test_spi_mosi_pin_is_mosi(self):
-        assert _INIT["spi_kwargs"]["MOSI"] is mock_board.MOSI
+        import config
+
+        assert _INIT["spi_kwargs"]["MOSI"] is getattr(
+            mock_board, config.matrix_mosi_pin
+        )
 
 
 # ── Initialisation: chip-select pin ──────────────────────────────────────────
@@ -94,7 +102,9 @@ class TestCSPinInit:
     """The CS DigitalInOut is constructed with the board pin from config.json."""
 
     def test_cs_uses_d5_pin(self):
-        assert _INIT["cs_call"] == call(mock_board.D5)
+        import config
+
+        assert _INIT["cs_call"] == call(getattr(mock_board, config.matrix_cs_pin))
 
 
 # ── Initialisation: Matrix8x8 object ─────────────────────────────────────────
